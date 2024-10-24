@@ -88,7 +88,7 @@ with contextlib.suppress(Exception):
     __plugin_meta__ = PluginMetadata(
         name="nonebot_plugin_impart",
         usage=config.usage,
-        description="NoneBot2银趴插件增强版",
+        description="NoneBot2 银趴插件 Plus",
         type="application",
         homepage="https://github.com/YuuzukiRin/nonebot_plugin_impart",
         config=Config,
