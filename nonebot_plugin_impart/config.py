@@ -39,7 +39,7 @@ class Config(BaseModel):
     fuck_cd_time: int = 3600  # 透群友冷却时间
     ban_id_list: str = "123456" # 白名单列表
     ban_id_set: set[str] = set(ban_id_list.split(",")) if ban_id_list else set() 
-    botname_set: set[str] = ["YUUZUKI"]
+    botname_set: set[str] = ["BOT"]
     botname: str = next(iter(botname_set))
 
     @staticmethod
