@@ -39,6 +39,13 @@ class Impart:
         if Impart.penalties_impact:
             punish_all_inactive_users()
 
+    @staticmethod                
+    def adjust_win_probability(uid: int, multiplier: float) -> None:
+        """调整胜率"""
+        current_probability = get_win_probability(uid)
+        new_probability = current_probability * multiplier
+        set_win_probability(uid, new_probability - current_probability)
+        
     @staticmethod
     async def pk(matcher: Matcher, event: GroupMessageEvent) -> None:
         """pk的响应器"""
@@ -54,244 +61,160 @@ class Impart:
             )
 
         plugin_config.pk_cd_data.update({uid: time.time()})  # 更新CD时间
-        at = await plugin_config.get_at(event)  # 获取at的id, 类型为str
+        at: str = await plugin_config.get_at(event) # 获取at的id
         if at == uid:  # 如果at的id和uid相同, 则返回
             await matcher.finish("你不能pk自己喵", at_sender=True)
 
         # 执行pk逻辑
-        if is_in_table(userid=int(uid)) and is_in_table(int(at)):  # 如果两个都在userdata里面
-            random_num = random.random()  # 生成一个随机数
-
-            if random_num < get_win_probability(userid=int(uid)):  # 根据胜率决定胜负
-                set_win_probability(int(uid), -0.01)  # 己方，减少1%的获胜概率
-                set_win_probability(int(at), 0.01)  # 对方，增加1%的获胜概率
-                random_num: float = plugin_config.get_random_num()  # 重新生成一个随机数
-                if get_jj_length(int(uid)) < 25 and get_jj_length(int(uid)) + random_num / 2 >= 25:
-                    set_jj_length(int(uid), random_num / 2)
-                    current_probability = get_win_probability(int(uid))  # 获取当前的获胜概率
-                    new_probability = current_probability * 0.80
-                    difference = current_probability - new_probability
-                    set_win_probability(int(uid), -difference)
-                    if get_jj_length(int(at)) >= 25 and get_jj_length(int(at)) - random_num / 2 < 25:
-                        current_probability = get_win_probability(int(at))
-                        new_probability = current_probability * 1.25
-                        difference = new_probability - current_probability 
-                        set_win_probability(int(at), difference)                        
-                        set_jj_length(int(at), -random_num - 5)
-                        await matcher.finish(
-                            f"对决胜利喵, 你的{choice(plugin_config.jj_variable)}增加了{round(random_num/2,3)}cm喵, 对面则在你的阴影笼罩下减小了{random_num}cm喵\n检测到你的{choice(plugin_config.jj_variable)}长度超过25cm，已为你开启✨“登神长阶”✨，你现在的获胜概率变为当前的80%，且无法使用“打胶”与“嗦”指令，请以将{choice(plugin_config.jj_variable)}长度提升至30cm为目标与他人pk吧!\n由于你对决的胜利，{plugin_config.botname}检测到TA的{choice(plugin_config.jj_variable)}长度已不足25cm，很遗憾，TA的登神挑战失败，{plugin_config.botname}替TA感谢你的鞭策喵！\nTA的{choice(plugin_config.jj_variable)}长度缩短了5cm喵，获胜概率已恢复喵！",
-                            at_sender=True,
-                        )
-                    elif get_jj_length(int(at)) > 0 and get_jj_length(int(at)) - random_num <= 0:                       
-                        set_jj_length(int(at), -random_num)
-                        await matcher.finish(
-                            f"对决胜利喵, 你的{choice(plugin_config.jj_variable)}增加了{round(random_num/2,3)}cm喵, 对面则在你的阴影笼罩下减小了{random_num}cm喵\n检测到你的{choice(plugin_config.jj_variable)}长度超过25cm，已为你开启✨“登神长阶”✨，你现在的获胜概率变为当前的80%，且无法使用“打胶”与“嗦”指令，请以将{choice(plugin_config.jj_variable)}长度提升至30cm为目标与他人pk吧!\n由于你对决的胜利，{plugin_config.botname}检测到TA已经变成女孩子了喵！",
-                            at_sender=True,
-                        )
-                    else:
-                        set_jj_length(int(at), -random_num)
-                        await matcher.finish(
-                            f"对决胜利喵, 你的{choice(plugin_config.jj_variable)}增加了{round(random_num/2,3)}cm喵, 对面则在你的阴影笼罩下减小了{random_num}cm喵\n检测到你的{choice(plugin_config.jj_variable)}长度超过25cm，已为你开启✨“登神长阶”✨，你现在的获胜概率变为当前的80%，且无法使用“打胶”与“嗦”指令，请以将{choice(plugin_config.jj_variable)}长度提升至30cm为目标与他人pk吧！",
-                            at_sender=True,
-                        )
-                    
-                elif get_jj_length(int(uid)) < 30 and get_jj_length(int(uid)) + random_num / 2 >= 30:
-                    set_jj_length(int(uid), random_num / 2)
-                    current_probability = get_win_probability(int(uid))
-                    new_probability = current_probability * 1.25
-                    difference = new_probability - current_probability
-                    set_win_probability(int(uid), difference)
-                    if get_jj_length(int(at)) >= 25 and get_jj_length(int(at)) - random_num / 2 < 25:
-                        current_probability = get_win_probability(int(at))
-                        new_probability = current_probability * 1.25
-                        difference = new_probability - current_probability
-                        set_win_probability(int(at), difference)                        
-                        set_jj_length(int(at), -random_num - 5)
-                        await matcher.finish(
-                            f"对决胜利喵, 你的{choice(plugin_config.jj_variable)}增加了{round(random_num/2,3)}cm喵, 对面则在你的阴影笼罩下减小了{random_num}cm喵\n🎉恭喜你完成登神挑战🎉\n你的{choice(plugin_config.jj_variable)}长度已超过30cm，授予你🎊“牛々の神”🎊称号\n你的获胜概率已恢复，“打胶”与“嗦”指令已重新开放，切记不忘初心，继续冲击更高的境界喵！\n由于你对决的胜利，{plugin_config.botname}检测到TA的{choice(plugin_config.jj_variable)}长度已不足25cm，很遗憾，TA的登神挑战失败，{plugin_config.botname}替TA感谢你的鞭策喵！\nTA的{choice(plugin_config.jj_variable)}长度缩短了5cm喵，获胜概率已恢复喵！",
-                            at_sender=True,
-                        )
-                    elif get_jj_length(int(at)) > 0 and get_jj_length(int(at)) - random_num <= 0:                       
-                        set_jj_length(int(at), -random_num)
-                        await matcher.finish(
-                            f"对决胜利喵, 你的{choice(plugin_config.jj_variable)}增加了{round(random_num/2,3)}cm喵, 对面则在你的阴影笼罩下减小了{random_num}cm喵\n🎉恭喜你完成登神挑战🎉\n你的{choice(plugin_config.jj_variable)}长度已超过30cm，授予你🎊“牛々の神”🎊称号\n你的获胜概率已恢复，“打胶”与“嗦”指令已重新开放，切记不忘初心，继续冲击更高的境界喵！\n由于你对决的胜利，{plugin_config.botname}检测到TA已经变成女孩子了喵！",
-                            at_sender=True,
-                        )                
-                    else:
-                        set_jj_length(int(at), -random_num)
-                        await matcher.finish(
-                            f"对决胜利喵, 你的{choice(plugin_config.jj_variable)}增加了{round(random_num/2,3)}cm喵, 对面则在你的阴影笼罩下减小了{random_num}cm喵\n🎉恭喜你完成登神挑战🎉\n你的{choice(plugin_config.jj_variable)}长度已超过30cm，授予你🎊“牛々の神”🎊称号\n你的获胜概率已恢复，“打胶”与“嗦”指令已重新开放，切记不忘初心，继续冲击更高的境界喵！",
-                            at_sender=True,
-                        )
-
-                else:
-                    set_jj_length(int(uid), random_num / 2)
-                    if get_jj_length(int(at)) >= 25 and get_jj_length(int(at)) - random_num < 25:
-                        current_probability = get_win_probability(int(at))
-                        new_probability = current_probability * 1.25
-                        difference = new_probability - current_probability
-                        set_win_probability(int(at), difference)                        
-                        set_jj_length(int(at), -random_num - 5)
-                        await matcher.finish(
-                            f"对决胜利喵, 你的{choice(plugin_config.jj_variable)}增加了{round(random_num/2,3)}cm喵, 对面则在你的阴影笼罩下减小了{random_num}cm喵\n由于你对决的胜利，{plugin_config.botname}检测到TA的{choice(plugin_config.jj_variable)}长度已不足25cm，很遗憾，TA的登神挑战失败，{plugin_config.botname}替TA感谢你的鞭策喵！\nTA的{choice(plugin_config.jj_variable)}长度缩短了5cm喵，获胜概率已恢复喵！",
-                            at_sender=True,
-                        )
-                    elif get_jj_length(int(at)) > 0 and get_jj_length(int(at)) - random_num <= 0:                       
-                        set_jj_length(int(at), -random_num)
-                        await matcher.finish(
-                            f"对决胜利喵, 你的{choice(plugin_config.jj_variable)}增加了{round(random_num/2,3)}cm喵, 对面则在你的阴影笼罩下减小了{random_num}cm喵\n你的胜率现在降为{get_win_probability(userid=int(uid)):.0%}喵\n由于你对决的胜利，{plugin_config.botname}检测到TA已经变成女孩子了喵！",
-                            at_sender=True,
-                        )
-                    else:
-                        set_jj_length(int(at), -random_num)
-                        await matcher.finish(
-                            f"对决胜利喵, 你的{choice(plugin_config.jj_variable)}增加了{round(random_num/2,3)}cm喵, 对面则在你的阴影笼罩下减小了{random_num}cm喵\n你的胜率现在降为{get_win_probability(userid=int(uid)):.0%}喵",
-                            at_sender=True,
-                        )
-
+        if is_in_table(userid=int(uid)) and is_in_table(int(at)):
+            random_num = random.random()
+            win = random_num < get_win_probability(userid=int(uid))
+            random_num: float = plugin_config.get_random_num()  # 重新生成一个随机数
+            uid_length = get_jj_length(int(uid))
+            at_length = get_jj_length(int(at))
+            length_increase = round(random_num / 2, 3)
+            length_decrease = random_num
+            if win:
+                set_win_probability(int(uid), -0.01)
+                set_win_probability(int(at), 0.01)
+                set_jj_length(int(uid), random_num / 2)
+                set_jj_length(int(at), -random_num)
+                await Impart.handle_pk_win(matcher, uid, at, uid_length, at_length, length_increase, length_decrease)
             else:
                 set_win_probability(int(uid), 0.01) # 己方，增加1%的获胜概率
                 set_win_probability(int(at), -0.01) # 对方，减少1%的获胜概率
-                random_num: float = plugin_config.get_random_num()
-                if get_jj_length(int(uid)) >= 25 and get_jj_length(int(uid)) - random_num < 25:
-                    set_jj_length(int(uid), -random_num)                    
-                    current_probability = get_win_probability(int(uid))
-                    new_probability = current_probability * 1.25
-                    difference = new_probability - current_probability
-                    set_win_probability(int(uid), difference)
-                    set_jj_length(int(uid), -5)
-                    if get_jj_length(int(at)) < 25 and get_jj_length(int(at)) + random_num / 2 >= 25:
-                        current_probability = get_win_probability(int(at))
-                        new_probability = current_probability * 0.80
-                        difference = current_probability - new_probability
-                        set_win_probability(int(at), -difference)                        
-                        set_jj_length(int(at), random_num / 2)
-                        await matcher.finish(
-                            f"对决失败喵, 在对面{choice(plugin_config.jj_variable)}的阴影笼罩下你的{choice(plugin_config.jj_variable)}减小了{random_num}cm喵, 对面增加了{round(random_num/2,3)}cm喵\n很遗憾，登神挑战失败，别气馁啦！\n你的{choice(plugin_config.jj_variable)}长度缩短了5cm喵，你的获胜概率已恢复喵！\n由于你对决的失败，触犯到了神秘的禁忌，{plugin_config.botname}检测到TA的{choice(plugin_config.jj_variable)}长度超过25cm，已为TA开启✨“登神长阶”✨，现在TA的获胜概率变为当前的80%，且无法使用“打胶”与“嗦”指令，请通知TA以将牛子长度提升至30cm为目标与群友pk吧！",
-                            at_sender=True,
-                        )
-                    elif get_jj_length(int(at)) <= 30 and get_jj_length(int(at)) + random_num / 2 > 30:
-                        set_jj_length(int(at), random_num / 2)
-                        set_jj_length(int(uid), -random_num)
-                        current_probability = get_win_probability(int(at))
-                        new_probability = current_probability * 1.25
-                        difference = new_probability - current_probability
-                        set_win_probability(int(at), difference)
-                        await matcher.finish(
-                            f"对决失败喵, 在对面{choice(plugin_config.jj_variable)}的阴影笼罩下你的{choice(plugin_config.jj_variable)}减小了{random_num}cm喵, 对面增加了{round(random_num/2,3)}cm喵\n很遗憾，登神挑战失败，别气馁啦！\n你的{choice(plugin_config.jj_variable)}长度缩短了5cm喵，你的获胜概率已恢复喵！\n🎉恭喜你帮助TA完成登神挑战🎉\n你的牺牲使TA的{choice(plugin_config.jj_variable)}长度超过30cm，授予TA🎊“牛々の神”🎊称号\nTA的获胜概率已恢复，“打胶”与“嗦”指令已重新开放，请提醒TA要不忘初心，继续冲击更高的境界喵！",
-                            at_sender=True,
-                        )
-                    else:
-                        set_jj_length(int(at), random_num / 2)
-                        set_jj_length(int(uid), -random_num)
-                        await matcher.finish(
-                            f"对决失败喵, 在对面{choice(plugin_config.jj_variable)}的阴影笼罩下你的{choice(plugin_config.jj_variable)}减小了{random_num}cm喵, 对面增加了{round(random_num/2,3)}cm喵\n很遗憾，登神挑战失败，别气馁啦！\n你的{choice(plugin_config.jj_variable)}长度缩短了5cm喵，你的获胜概率已恢复喵！",
-                            at_sender=True,
-                        )
-                else:
-                    set_jj_length(int(uid), -random_num)
-                    if get_jj_length(int(at)) < 25 and get_jj_length(int(at)) + random_num / 2 >= 25:
-                        current_probability = get_win_probability(int(at))
-                        new_probability = current_probability * 0.80
-                        difference = current_probability - new_probability
-                        set_win_probability(int(at), -difference)                        
-                        set_jj_length(int(at), random_num / 2)
-                        if get_jj_length(int(at)) <= 0:                       
-                            await matcher.finish(
-                                f"你醒啦, 你已经变成女孩子了！ 在对面{choice(plugin_config.jj_variable)}的阴影笼罩下你的{choice(plugin_config.jj_variable)}减小了{random_num}cm喵, 对面增加了{round(random_num/2,3)}cm喵\n由于你对决的失败，触犯到了神秘的禁忌，{plugin_config.botname}检测到TA的{choice(plugin_config.jj_variable)}长度超过25cm，已为TA开启✨“登神长阶”✨，现在TA的获胜概率变为当前的80%，且无法使用“打胶”与“嗦”指令，请通知TA以将牛子长度提升至30cm为目标与群友pk吧！",
-                                at_sender=True,
-                            ) 
-                        else:    
-                            await matcher.finish(
-                                f"对决失败喵, 在对面{choice(plugin_config.jj_variable)}的阴影笼罩下你的{choice(plugin_config.jj_variable)}减小了{random_num}cm喵, 对面增加了{round(random_num/2,3)}cm喵\n由于你对决的失败，触犯到了神秘的禁忌，{plugin_config.botname}检测到TA的{choice(plugin_config.jj_variable)}长度超过25cm，已为TA开启✨“登神长阶”✨，现在TA的获胜概率变为当前的80%，且无法使用“打胶”与“嗦”指令，请通知TA以将牛子长度提升至30cm为目标与群友pk吧！",
-                                at_sender=True,
-                            )
-                    elif get_jj_length(int(at)) < 30 and get_jj_length(int(at)) + random_num / 2 >= 30:
-                        set_jj_length(int(at), random_num / 2)
-                        current_probability = get_win_probability(int(at))
-                        new_probability = current_probability * 1.25
-                        difference = new_probability - current_probability
-                        set_win_probability(int(at), difference)
-                        if get_jj_length(int(at)) <= 0:                       
-                            await matcher.finish(
-                                f"你醒啦, 你已经变成女孩子了！ 在对面{choice(plugin_config.jj_variable)}的阴影笼罩下你的{choice(plugin_config.jj_variable)}减小了{random_num}cm喵, 对面增加了{round(random_num/2,3)}cm喵\n🎉恭喜你帮助TA完成登神挑战🎉\n你的牺牲使TA的{choice(plugin_config.jj_variable)}长度超过30cm，授予TA🎊“牛々の神”🎊称号\nTA的获胜概率已恢复，“打胶”与“嗦”指令已重新开放，请提醒TA要不忘初心，继续冲击更高的境界喵！",
-                                at_sender=True,
-                            ) 
-                        else:                        
-                            await matcher.finish(
-                                f"对决失败喵, 在对面{choice(plugin_config.jj_variable)}的阴影笼罩下你的{choice(plugin_config.jj_variable)}减小了{random_num}cm喵, 对面增加了{round(random_num/2,3)}cm喵\n🎉恭喜你帮助TA完成登神挑战🎉\n你的牺牲使TA的{choice(plugin_config.jj_variable)}长度超过30cm，授予TA🎊“牛々の神”🎊称号\nTA的获胜概率已恢复，“打胶”与“嗦”指令已重新开放，请提醒TA要不忘初心，继续冲击更高的境界喵！",
-                                at_sender=True,
-                            )                            
-                    else:
-                        set_jj_length(int(at), random_num / 2)                        
-                        if get_jj_length(int(uid)) <= 0:                       
-                            await matcher.finish(
-                                f"你醒啦, 你已经变成女孩子了！ 在对面{choice(plugin_config.jj_variable)}的阴影笼罩下你的{choice(plugin_config.jj_variable)}减小了{random_num}cm喵, 对面增加了{round(random_num/2,3)}cm喵\n你的胜率现在升为{get_win_probability(userid=int(uid)):.0%}喵",
-                                at_sender=True,
-                            ) 
-                        else:                         
-                            await matcher.finish(
-                                f"对决失败喵, 在对面{choice(plugin_config.jj_variable)}的阴影笼罩下你的{choice(plugin_config.jj_variable)}减小了{random_num}cm喵, 对面增加了{round(random_num/2,3)}cm喵\n你的胜率现在升为{get_win_probability(userid=int(uid)):.0%}喵",
-                                at_sender=True,
-                            )
-
+                set_jj_length(int(uid), -random_num)
+                set_jj_length(int(at), random_num / 2)
+                await Impart.handle_pk_loss(matcher, uid, at, uid_length, at_length, length_increase, length_decrease)
         else:
-            # 谁不在userdata里面, 就创建谁
-            if is_in_table(userid=int(uid)):
-                add_new_user(int(at))
-            if is_in_table(userid=int(at)):
+            # 创建新的用户
+            if not is_in_table(userid=int(uid)):
                 add_new_user(int(uid))
+            if not is_in_table(userid=int(at)):
+                add_new_user(int(at))
             del plugin_config.pk_cd_data[uid]  # 删除CD时间
             await matcher.finish(
                 f"你或对面还没有创建{choice(plugin_config.jj_variable)}喵, 咱全帮你创建了喵, 你们的{choice(plugin_config.jj_variable)}长度都是10cm喵",
                 at_sender=True,
             )
+            
+    @staticmethod            
+    async def handle_pk_win(matcher: Matcher, uid: str, at: str, uid_length: float, at_length: float, length_increase: float, length_decrease: float) -> None:
+        """处理pk胜利逻辑"""
+        print(f"UID length before increase: {uid_length}, Length increase: {length_increase}")
+        # 检查 UID 达到25cm或30cm的条件
+        is_uid_reach_25 = uid_length < 25 <= uid_length + length_increase
+        is_uid_reach_30 = uid_length < 30 <= uid_length + length_increase
 
+        # 检查 AT 长度变化条件
+        is_at_below_25 = at_length >= 25 > at_length - length_decrease
+        is_at_below_0 = at_length > 0 >= at_length - length_decrease
+
+        # 设置基本消息模板
+        uid_msg = f"对决胜利喵, 你的{choice(plugin_config.jj_variable)}增加了{length_increase}cm喵, 对面则在你的阴影笼罩下减小了{length_decrease}cm喵"        
+        
+        if is_uid_reach_25:
+            Impart.adjust_win_probability(int(uid), 0.80)
+            uid_msg += f"\n检测到你的{choice(plugin_config.jj_variable)}长度超过25cm，已为你开启✨“登神长阶”✨，你现在的获胜概率变为当前的80%，且无法使用“打胶”与“嗦”指令，请以将{choice(plugin_config.jj_variable)}长度提升至30cm为目标与他人pk吧!"
+        elif is_uid_reach_30:
+            Impart.adjust_win_probability(int(uid), 1.25)
+            uid_msg += f"\n🎉恭喜你完成登神挑战🎉\n你的{choice(plugin_config.jj_variable)}长度已超过30cm，授予你🎊“牛々の神”🎊称号\n你的获胜概率已恢复，“打胶”与“嗦”指令已重新开放，切记不忘初心，继续冲击更高的境界喵！"
+
+        # 根据 AT 条件调整消息
+        if is_at_below_25:
+            Impart.adjust_win_probability(int(at), 1.25)
+            set_jj_length(int(at), -5)
+            uid_msg += f"\n由于你对决的胜利，{plugin_config.botname}检测到TA的{choice(plugin_config.jj_variable)}长度已不足25cm，很遗憾，TA的登神挑战失败，{plugin_config.botname}替TA感谢你的鞭策喵！\nTA的{choice(plugin_config.jj_variable)}长度缩短了5cm喵，获胜概率已恢复，“打胶”与“嗦”指令已重新开放喵！"
+        elif is_at_below_0:
+            uid_msg += f"\n由于你对决的胜利，{plugin_config.botname}检测到TA已经变成女孩子了喵！"
+            
+        probability_msg = f"\n你的胜率现在为{get_win_probability(userid=int(uid)):.0%}喵"
+        
+        await matcher.finish(f"{uid_msg}{probability_msg}", at_sender=True)
+        
+    @staticmethod    
+    async def handle_pk_loss(matcher: Matcher, uid: str, at: str, uid_length: float, at_length: float, length_increase: float, length_decrease: float) -> None:
+        """处理pk失败逻辑"""
+
+        is_uid_below_25 = uid_length >= 25 > uid_length - length_decrease
+        is_uid_below_0 = uid_length > 0 >= uid_length - length_decrease
+        is_at_reach_25 = at_length < 25 <= at_length + length_increase
+        is_at_reach_30 = at_length < 30 <= at_length + length_increase    
+
+        uid_msg = f"对决失败喵, 在对面{choice(plugin_config.jj_variable)}的阴影笼罩下你的{choice(plugin_config.jj_variable)}减小了{length_decrease}cm喵, 对面增加了{length_increase}cm喵"        
+
+        if is_uid_below_25:
+            Impart.adjust_win_probability(int(uid), 1.25)
+            set_jj_length(int(uid), -5)
+            uid_msg += f"\n很遗憾，登神挑战失败，别气馁啦！\n你的{choice(plugin_config.jj_variable)}长度缩短了5cm喵，获胜概率已恢复，“打胶”与“嗦”指令已重新开放喵！"
+        elif is_uid_below_0:
+            uid_msg += f"\n你醒啦, 你已经变成女孩子了！"
+
+        if is_at_reach_25:
+            Impart.adjust_win_probability(int(at), 0.80)
+            uid_msg += f"\n由于你对决的失败，触犯到了神秘的禁忌，{plugin_config.botname}检测到TA的{choice(plugin_config.jj_variable)}长度超过25cm，已为TA开启✨“登神长阶”✨，现在TA的获胜概率变为当前的80%，且无法使用“打胶”与“嗦”指令，请通知TA以将{choice(plugin_config.jj_variable)}长度提升至30cm为目标与群友pk吧！"
+        elif is_at_reach_30:
+            Impart.adjust_win_probability(int(at), 1.25)
+            uid_msg += f"\n🎉恭喜你帮助TA完成登神挑战🎉\nTA的{choice(plugin_config.jj_variable)}长度超过30cm，授予TA🎊“牛々の神”🎊称号，TA的获胜概率已恢复，“打胶”与“嗦”指令已重新开放，请提醒TA不忘初心，继续冲击更高的境界喵！"
+
+        probability_msg = f"\n你的胜率现在为{get_win_probability(userid=int(uid)):.0%}喵"
+        
+        await matcher.finish(f"{uid_msg}{probability_msg}", at_sender=True)
+            
     @staticmethod
     async def dajiao(matcher: Matcher, event: GroupMessageEvent) -> None:
         """打胶的响应器"""
+        # 检查群组权限
         if not check_group_allow(event.group_id):
             await matcher.finish(plugin_config.not_allow, at_sender=True)
-        uid: str = event.get_user_id()
-        allow = await plugin_config.cd_check(uid)  # CD是否允许打胶
-        if not allow:  # 如果不允许打胶, 则返回
+        # 获取用户ID
+        uid: str = event.get_user_id()        
+        # 检查CD时间是否允许
+        allow = await plugin_config.cd_check(uid)
+        if not allow:
+            remaining_time = round(plugin_config.dj_cd_time - (time.time() - plugin_config.cd_data[uid]), 3)
             await matcher.finish(
-                f"你已经打不动了喵, 请等待{round(plugin_config.dj_cd_time-(time.time() - plugin_config.cd_data[uid]),3)}秒后再打喵",
+                f"你已经打不动了喵, 请等待{remaining_time}秒后再打喵",
                 at_sender=True,
             )
-        plugin_config.cd_data.update({uid: time.time()})  # 更新CD时间
-        if is_in_table(userid=int(uid)):  # 如果在userdata里面
-            current_length = get_jj_length(int(uid))
-            
-            # 检查牛子长度是否符合要求
-            if 25 <= current_length <= 30:
-                await matcher.finish(
-                    f"你的{choice(plugin_config.jj_variable)}长度在任务范围内，不允许打胶，请专心与群友pk！",
-                    at_sender=True,
-                )
-                return
-                
-            random_num = plugin_config.get_random_num()  # 生成一个随机数            
-            if get_jj_length(int(uid)) < 25 and get_jj_length(int(uid)) + random_num >= 25:
-                set_jj_length(int(uid), random_num)  # 更新userdata
-                current_probability = get_win_probability(int(uid))  # 获取当前的获胜概率
-                new_probability = current_probability * 0.80
-                difference = current_probability - new_probability
-                set_win_probability(int(uid), -difference)
-                await matcher.finish(
-                            f"打胶结束喵, 你的{choice(plugin_config.jj_variable)}很满意喵, 长了{random_num}cm喵\n由于你无休止的打胶，触犯到了神秘的禁忌，{plugin_config.botname}检测到你的{choice(plugin_config.jj_variable)}长度超过25cm，已为你开启✨“登神长阶”✨，你现在的获胜概率变为当前的80%，且无法使用“打胶”与“嗦”指令，请以将{choice(plugin_config.jj_variable)}长度提升至30cm为目标与他人pk吧！",
-                            at_sender=True,
-                        )
-            else:
-                set_jj_length(int(uid), random_num)
-                await matcher.finish(
-                    f"打胶结束喵, 你的{choice(plugin_config.jj_variable)}很满意喵, 长了{random_num}cm喵, 目前长度为{get_jj_length(int(uid))}cm喵",
-                    at_sender=True,
-                )
-        else:
-            add_new_user(int(uid))  # 创建用户
+        # 更新CD时间
+        plugin_config.cd_data[uid] = time.time()
+        
+        # 检查用户数据
+        if not is_in_table(userid=int(uid)):
+            add_new_user(int(uid))  # 创建新用户
             await matcher.finish(
                 f"你还没有创建{choice(plugin_config.jj_variable)}, 咱帮你创建了喵, 目前长度是10cm喵",
+                at_sender=True,
+            )
+            return
+
+        # 获取当前长度和随机数
+        uid_length: int = get_jj_length(int(uid))
+        random_num: int = plugin_config.get_random_num()        
+
+        # 牛子长度范围限制
+        if 25 <= uid_length <= 30:
+            await matcher.finish(
+                f"你的{choice(plugin_config.jj_variable)}长度在任务范围内，不允许打胶，请专心与群友pk！",
+                at_sender=True,
+            )
+            return
+
+        # 增长逻辑
+        if uid_length < 25 <= uid_length + random_num:
+            set_jj_length(int(uid), random_num)
+            Impart.adjust_win_probability(int(uid), 0.80)
+            await matcher.finish(
+                f"打胶结束喵, 你的{choice(plugin_config.jj_variable)}很满意喵, 长了{random_num}cm喵\n由于你无休止的打胶，触犯到了神秘的禁忌，"
+                f"{plugin_config.botname}检测到你的{choice(plugin_config.jj_variable)}长度超过25cm，已为你开启✨“登神长阶”✨，你现在的获胜概率变为当前的80%，"
+                f"且无法使用“打胶”与“嗦”指令，请以将{choice(plugin_config.jj_variable)}长度提升至30cm为目标与他人pk吧！",
+                at_sender=True,
+            )
+        else:
+            set_jj_length(int(uid), random_num)
+            await matcher.finish(
+                f"打胶结束喵, 你的{choice(plugin_config.jj_variable)}很满意喵, 长了{random_num}cm喵, 目前长度为{get_jj_length(int(uid))}cm喵",
                 at_sender=True,
             )
 
@@ -300,148 +223,85 @@ class Impart:
         """嗦牛子的响应器"""
         if not check_group_allow(event.group_id):
             await matcher.finish(plugin_config.not_allow, at_sender=True)
-        uid: str = event.get_user_id()
-        allow = await plugin_config.suo_cd_check(uid)  # CD是否允许嗦
-        if not allow:  # 如果不允许嗦, 则返回
+
+        uid: str = event.get_user_id()        
+
+        allow = await plugin_config.suo_cd_check(uid)
+        if not allow:
+            remaining_time = round(plugin_config.suo_cd_time - (time.time() - plugin_config.suo_cd_data[uid]), 3)
             await matcher.finish(
-                f"你已经嗦不动了喵, 请等待{round(plugin_config.suo_cd_time-(time.time() - plugin_config.suo_cd_data[uid]),3)}秒后再嗦喵",
+                f"你已经嗦不动了喵, 请等待{remaining_time}秒后再嗦喵",
                 at_sender=True,
             )
-        plugin_config.suo_cd_data.update({uid: time.time()})  # 更新CD时间
-        at: str = await plugin_config.get_at(event)  # 获取at的用户id, 类型为str
-        if at == "寄":  # 如果没有at
-            if is_in_table(userid=int(uid)):  # 如果在userdata里面
-                current_length = get_jj_length(int(uid))
+
+        plugin_config.suo_cd_data[uid] = time.time()       
+        # 获取at的用户ID
+        at: str = await plugin_config.get_at(event)
+        target_id = int(uid if at == "寄" else at)  # 如果没有at，则使用自己的uid
+        pronoun = "你" if at == "寄" else "TA"  # 判断是自己还是被@用户
         
-                # 检查牛子长度是否符合要求
-                if 25 <= current_length < 30:
-                    await matcher.finish(
-                        f"你的{choice(plugin_config.jj_variable)}长度在任务范围内，不准嗦！请专心与群友pk！",
-                        at_sender=True,
-                    )
-                    return
-                random_num = plugin_config.get_random_num()  # 生成一个随机数                
-                if get_jj_length(int(uid)) < 25 and get_jj_length(int(uid)) + random_num >= 25:
-                    set_jj_length(int(uid), random_num)
-                    current_probability = get_win_probability(int(uid))  # 获取当前的获胜概率
-                    new_probability = current_probability * 0.80
-                    difference = current_probability - new_probability
-                    set_win_probability(int(uid), -difference)
-                    await matcher.finish(
-                        f"你的{choice(plugin_config.jj_variable)}很满意喵, 嗦长了{random_num}cm喵\n由于你无休止的嗦与被嗦，触犯到了神秘的禁忌，{plugin_config.botname}检测到你的{choice(plugin_config.jj_variable)}长度超过25cm，已为你开启✨“登神长阶”✨，你现在的获胜概率变为当前的80%，且无法使用“打胶”与“嗦”指令，请以将{choice(plugin_config.jj_variable)}长度提升至30cm为目标与他人pk吧！",
-                        at_sender=True,
-                    )
-                else:
-                    set_jj_length(int(uid), random_num)
-                    await matcher.finish(
-                        f"你的{choice(plugin_config.jj_variable)}很满意喵, 嗦长了{random_num}cm喵, 目前长度为{get_jj_length(int(uid))}cm喵",
-                        at_sender=True,
-                    )
-            else:  # 如果不在userdata里面
-                add_new_user(int(uid))  # 创建用户
-                del plugin_config.suo_cd_data[uid]  # 删除CD时间
-                await matcher.finish(
-                    f"你还没有创建{choice(plugin_config.jj_variable)}喵, 咱帮你创建了喵, 目前长度是10cm喵",
-                    at_sender=True,
-                )
-        elif is_in_table(userid=int(at)):  # 如果在userdata里面
-            current_length = get_jj_length(int(at))
-        
-            # 检查牛子长度是否符合要求
-            if 25 <= current_length < 30:
-                await matcher.finish(
-                    f"TA的{choice(plugin_config.jj_variable)}长度在任务范围内，不准给TA嗦！",
-                    at_sender=True,
-                )
-                return
-            random_num = plugin_config.get_random_num()  # 生成一个随机数
-            if get_jj_length(int(at)) < 25 and get_jj_length(int(at)) + random_num >= 25:
-                # 更新userdata
-                set_jj_length(int(at), random_num)
-                current_probability = get_win_probability(int(at))  # 获取当前的获胜概率
-                new_probability = current_probability * 0.80
-                difference = current_probability - new_probability
-                set_win_probability(int(at), -difference)
-                await matcher.finish(
-                    f"对方的{choice(plugin_config.jj_variable)}很满意喵, 嗦长了{random_num}cm喵\n由于你无休止的嗦，触犯到了神秘的禁忌，{plugin_config.botname}检测到TA的{choice(plugin_config.jj_variable)}长度超过25cm，已为TA开启✨“登神长阶”✨，现在TA的获胜概率变为当前的80%，且无法使用“打胶”与“嗦”指令，请通知TA以将牛子长度提升至30cm为目标与群友pk吧！",
-                    at_sender=True,
-                )
-            else:
-                set_jj_length(int(at), random_num)
-                await matcher.finish(
-                    f"对方的{choice(plugin_config.jj_variable)}很满意喵, 嗦长了{random_num}cm喵, 目前长度为{get_jj_length(int(at))}cm喵",
-                    at_sender=True,
-                )
-        else:
-            add_new_user(int(at))  # 创建用户
+        if not is_in_table(userid=target_id):
+            add_new_user(target_id)
             del plugin_config.suo_cd_data[uid]  # 删除CD时间
-            await matcher.finish(
-                f"TA还没有创建{choice(plugin_config.jj_variable)}喵, 咱帮TA创建了喵, 目前长度是10cm喵",
-                at_sender=True,
-            )
+            msg = f"{pronoun}还没有创建{choice(plugin_config.jj_variable)}喵, 咱帮{pronoun}创建了喵, 目前长度是10cm喵"
+            await matcher.finish(msg, at_sender=True)    
+            return
+
+        # 获取当前长度和随机数
+        current_length: int = get_jj_length(target_id)
+        random_num: int = plugin_config.get_random_num()        
+
+        if 25 <= current_length < 30:
+            msg = f"{pronoun}的{choice(plugin_config.jj_variable)}长度在任务范围内，不准嗦！请专心与群友pk！"
+            await matcher.finish(msg, at_sender=True)
+            return
+
+        # 增长逻辑
+        new_length = current_length + random_num
+        set_jj_length(target_id, random_num)
+
+        if current_length < 25 <= new_length:
+            Impart.adjust_win_probability(target_id, 0.80)
+            msg = (f"{pronoun}的{choice(plugin_config.jj_variable)}很满意喵, 嗦长了{random_num}cm喵\n"
+                  f"\n由于{pronoun}无休止的嗦与被嗦，触犯到了神秘的禁忌，{plugin_config.botname}检测到{pronoun}的{choice(plugin_config.jj_variable)}长度超过25cm，"
+                  f"\n已为{pronoun}开启✨“登神长阶”✨，{pronoun}现在的获胜概率变为80%，且无法使用“打胶”与“嗦”指令，请以将{choice(plugin_config.jj_variable)}长度提升至30cm为目标与他人pk吧！")
+            await matcher.finish(msg, at_sender=True)
+        else:
+            msg = f"{pronoun}的{choice(plugin_config.jj_variable)}很满意喵, 嗦长了{random_num}cm喵, 目前长度为{new_length}cm喵"
+            await matcher.finish(msg, at_sender=True)        
 
     @staticmethod
     async def queryjj(matcher: Matcher, event: GroupMessageEvent) -> None:
         """查询某人jj的响应器"""
         if not check_group_allow(event.group_id):
             await matcher.finish(plugin_config.not_allow, at_sender=True)
-        uid: str = event.get_user_id()  # 获取用户id, 类型为str
-        at: str = await plugin_config.get_at(event)  # 获取at的用户id, 类型为str
-        if at == "寄":  # 如果没有at
-            if is_in_table(userid=int(uid)):  # 如果在userdata里面
-                if get_jj_length(int(uid)) > 5:
-                    await matcher.finish(
-                        f"你的{choice(plugin_config.jj_variable)}目前长度为{get_jj_length(int(uid))}cm喵",
-                        at_sender=True,
-                    )
-                elif 5 >= get_jj_length(int(uid)) > 1:
-                    await matcher.finish(
-                        f"你已经是xnn啦！\n你的{choice(plugin_config.jj_variable)}目前长度为{get_jj_length(int(uid))}cm喵",
-                        at_sender=True,
-                    )  
-                elif 1 >= get_jj_length(int(uid)) > 0:
-                    await matcher.finish(
-                        f"你快要变成女孩子啦！\n你的{choice(plugin_config.jj_variable)}目前长度为{get_jj_length(int(uid))}cm喵",
-                        at_sender=True,
-                    )
-                else:
-                    await matcher.finish(
-                        f"你已经是女孩子啦！\n你的{choice(plugin_config.jj_variable)}目前长度为{get_jj_length(int(uid))}cm喵",
-                        at_sender=True,
-                    )                    
-            else:
-                add_new_user(int(uid))  # 创建用户
-                await matcher.finish(
-                    f"你还没有创建{choice(plugin_config.jj_variable)}喵, 咱帮你创建了喵, 目前长度是10cm喵",
-                    at_sender=True,
-                )
-        elif is_in_table(userid=int(at)):  # 如果在userdata里面
-            if get_jj_length(int(at)) > 5:        
-                await matcher.finish(
-                    f"TA的{choice(plugin_config.jj_variable)}目前长度为{get_jj_length(int(at))}cm喵",
-                    at_sender=True,
-                )
-            elif 5 >= get_jj_length(int(at)) > 1:        
-                await matcher.finish(
-                    f"TA已经是xnn啦！\nTA的{choice(plugin_config.jj_variable)}目前长度为{get_jj_length(int(at))}cm喵",
-                    at_sender=True,
-                )
-            elif 1 >= get_jj_length(int(at)) > 0:        
-                await matcher.finish(
-                    f"TA快要变成女孩子啦！\nTA的{choice(plugin_config.jj_variable)}目前长度为{get_jj_length(int(at))}cm喵",
-                    at_sender=True,
-                )
-            else:        
-                await matcher.finish(
-                    f"TA已经是女孩子啦！\nTA的{choice(plugin_config.jj_variable)}目前长度为{get_jj_length(int(at))}cm喵",
-                    at_sender=True,
-                )
+
+        uid: str = event.get_user_id()
+        at = await plugin_config.get_at(event)
+        target_id = int(at if at != "寄" else uid)
+        pronoun = "你" if at == "寄" else "TA"
+
+        # 创建用户数据如果不存在
+        if not is_in_table(userid=target_id):
+            add_new_user(target_id)
+            msg = f"{pronoun}还没有创建{choice(plugin_config.jj_variable)}喵, 咱帮{pronoun}创建了喵, 目前长度是10cm喵"
+            await matcher.finish(msg, at_sender=True)
+
+        length: int = get_jj_length(target_id)
+
+        # 根据不同的长度范围生成响应消息
+        if length >= 30:
+            msg = f"✨牛々の神✨\n{pronoun}的{choice(plugin_config.jj_variable)}目前长度为{length}cm喵"
+        elif 30>length > 5:
+            msg = f"{pronoun}的{choice(plugin_config.jj_variable)}目前长度为{length}cm喵"
+        elif 5 >= length > 1:
+            msg = f"{pronoun}已经是xnn啦！\n{pronoun}的{choice(plugin_config.jj_variable)}目前长度为{length}cm喵"
+        elif 1 >= length > 0:
+            msg = f"{pronoun}快要变成女孩子啦！\n{pronoun}的{choice(plugin_config.jj_variable)}目前长度为{length}cm喵"
         else:
-            add_new_user(int(at))  # 创建用户
-            await matcher.finish(
-                f"TA还没有创建{choice(plugin_config.jj_variable)}喵, 咱帮他创建了喵, 目前长度是10cm喵",
-                at_sender=True,
-            )
+            msg = f"{pronoun}已经是女孩子啦！\n{pronoun}的{choice(plugin_config.jj_variable)}目前长度为{length}cm喵"
+
+        await matcher.finish(msg, at_sender=True)
 
     @staticmethod
     async def jjrank(bot: Bot, matcher: Matcher, event: GroupMessageEvent) -> None:
