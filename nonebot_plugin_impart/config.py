@@ -27,7 +27,7 @@ class Config(BaseModel):
 输出impart插件的命令列表
 <牛牛长度超过25时会触发神秘任务>
 """
-    not_allow = '群内还未开启impart游戏, 请管理员或群主发送"开始银趴", "禁止银趴"以开启/关闭该功能'
+    not_allow : ClassVar[str] = '群内还未开启impart游戏, 请管理员或群主发送"开始银趴", "禁止银趴"以开启/关闭该功能'
     jj_variable = ["牛子", "牛牛", "newnew"]
     cd_data = {}  # 冷却数据
     pk_cd_data = {}  # pk冷却数据
