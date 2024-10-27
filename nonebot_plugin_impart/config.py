@@ -1,12 +1,12 @@
 """配置和工具函数"""
 import random
 import time
-from typing import Union, ClassVar
+from typing import Union
 from pydantic import BaseModel
 from nonebot.adapters.onebot.v11 import GroupMessageEvent
 
 class Config(BaseModel):
-    usage: ClassVar[str] = """impart功能说明:
+    usage: str = """impart功能说明:
 [嗦牛子|嗦] 
 给目标牛牛增加长度,通过at选择对象,没有at时目标是自己
 [打胶|开导] 
@@ -27,12 +27,12 @@ class Config(BaseModel):
 输出impart插件的命令列表
 <牛牛长度超过25时会触发神秘任务>
 """
-    not_allow : ClassVar[str] = '群内还未开启impart游戏, 请管理员或群主发送"开始银趴", "禁止银趴"以开启/关闭该功能'
-    jj_variable = ["牛子", "牛牛", "newnew"]
-    cd_data = {}  # 冷却数据
-    pk_cd_data = {}  # pk冷却数据
-    suo_cd_data = {}  # 嗦冷却数据
-    ejaculation_cd = {}  # 注入CD
+    not_allow: str = '群内还未开启impart游戏, 请管理员或群主发送"开始银趴", "禁止银趴"以开启/关闭该功能'
+    jj_variable: list[str] = ["牛子", "牛牛", "newnew"]
+    cd_data: dict = {}  # 冷却数据
+    pk_cd_data: dict = {}  # pk冷却数据
+    suo_cd_data: dict = {}  # 嗦冷却数据
+    ejaculation_cd: dict = {}  # 注入CD
     dj_cd_time: int = 300  # 打胶冷却时间
     pk_cd_time: int = 60  # pk冷却时间
     suo_cd_time: int = 300  # 嗦冷却时间
