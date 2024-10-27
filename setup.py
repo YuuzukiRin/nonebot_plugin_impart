@@ -5,7 +5,7 @@ with open('README.md', encoding="utf-8") as f:
 
 setup(
     name='nonebot-plugin-impart',
-    version='0.1.0',
+    version='0.1.1',
     description='NoneBot2 Impart Plugin Plus',
     long_description=long_description,
     long_description_content_type='text/markdown',
