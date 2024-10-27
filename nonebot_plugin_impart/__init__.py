@@ -2,6 +2,7 @@
 import contextlib
 from re import I
 from nonebot import on_command, on_regex, require
+from nonebot.plugin import PluginMetadata
 from nonebot.adapters.onebot.v11.permission import GROUP_ADMIN, GROUP_OWNER
 from nonebot.permission import SUPERUSER
 from .handle import impart
@@ -11,6 +12,19 @@ from nonebot_plugin_apscheduler import scheduler
 
 scheduler.add_job(impart.penalties_and_resets, "cron", hour = 0, misfire_grace_time = 600)
 
+__plugin_meta__ = PluginMetadata(
+    name="nonebot_plugin_impart",
+    usage=config.usage,
+    description="NoneBot2 银趴插件 Plus",
+    type="application",
+    homepage="https://github.com/YuuzukiRin/nonebot_plugin_impart",
+    config=Config,
+    supported_adapters={"~onebot.v11"},
+    extra={
+        "priority": 20,
+    },
+)
+    
 on_command(
     "pk",
     aliases={"对决"},
@@ -82,18 +96,3 @@ on_command(
     handlers=[impart.yinpa_introduce]
 )
 
-with contextlib.suppress(Exception):
-    from nonebot.plugin import PluginMetadata
-
-    __plugin_meta__ = PluginMetadata(
-        name="nonebot_plugin_impart",
-        usage=config.usage,
-        description="NoneBot2 银趴插件 Plus",
-        type="application",
-        homepage="https://github.com/YuuzukiRin/nonebot_plugin_impart",
-        config=Config,
-        supported_adapters={"~onebot.v11"},
-        extra={
-            "priority": 20,
-        },
-    )
