@@ -14,7 +14,7 @@ scheduler.add_job(impart.penalties_and_resets, "cron", hour = 0, misfire_grace_t
 
 __plugin_meta__ = PluginMetadata(
     name="nonebot_plugin_impart",
-    usage=config.usage,
+    usage="使用<银趴帮助/impart help>指令获取使用说明",
     description="NoneBot2 银趴插件 Plus",
     type="application",
     homepage="https://github.com/YuuzukiRin/nonebot_plugin_impart",
