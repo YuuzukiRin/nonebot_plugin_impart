@@ -4,8 +4,6 @@ import time
 from typing import Union
 from pydantic import BaseModel
 from nonebot.adapters.onebot.v11 import GroupMessageEvent
-import nonebot
-config = nonebot.get_driver().config
 
 class Config(BaseModel):
     usage = """impart功能说明:
@@ -35,13 +33,13 @@ class Config(BaseModel):
     pk_cd_data = {}  # pk冷却数据
     suo_cd_data = {}  # 嗦冷却数据
     ejaculation_cd = {}  # 注入CD
-    dj_cd_time: int = getattr(config, "djcdtime", 300)  # 打胶冷却时间
-    pk_cd_time: int = getattr(config, "pkcdtime", 60)  # pk冷却时间
-    suo_cd_time: int = getattr(config, "suocdtime", 300)  # 嗦冷却时间
-    fuck_cd_time: int = getattr(config, "fuckcdtime", 3600)  # 透群友冷却时间
-    ban_id_list: str = getattr(config, "banidlist", "") # 白名单列表
+    dj_cd_time: int = 300  # 打胶冷却时间
+    pk_cd_time: int = 60  # pk冷却时间
+    suo_cd_time: int = 300  # 嗦冷却时间
+    fuck_cd_time: int = 3600  # 透群友冷却时间
+    ban_id_list: str = "123456" # 白名单列表
     ban_id_set: set[str] = set(ban_id_list.split(",")) if ban_id_list else set() 
-    botname_set: set[str] = getattr(config, "nickname", ["YUUZUKI"])
+    botname_set: set[str] = ["YUUZUKI"]
     botname: str = next(iter(botname_set))
 
     @staticmethod
