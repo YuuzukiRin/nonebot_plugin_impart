@@ -1,12 +1,12 @@
 """配置和工具函数"""
 import random
 import time
-from typing import Union
+from typing import Union, ClassVar
 from pydantic import BaseModel
 from nonebot.adapters.onebot.v11 import GroupMessageEvent
 
 class Config(BaseModel):
-    usage = """impart功能说明:
+    usage: ClassVar[str] = """impart功能说明:
 [嗦牛子|嗦] 
 给目标牛牛增加长度,通过at选择对象,没有at时目标是自己
 [打胶|开导] 
