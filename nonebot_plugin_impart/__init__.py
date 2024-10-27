@@ -94,7 +94,6 @@ with contextlib.suppress(Exception):
         config=Config,
         supported_adapters={"~onebot.v11"},
         extra={
-            "version": "0.1.0",
             "priority": 20,
         },
     )
