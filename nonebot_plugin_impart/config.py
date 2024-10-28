@@ -4,6 +4,7 @@ import time
 from typing import Union
 from pydantic import BaseModel
 from nonebot.adapters.onebot.v11 import GroupMessageEvent
+from httpx import AsyncClient
 
 class Config(BaseModel):
     usage: str = """impart功能说明:
@@ -38,9 +39,7 @@ class Config(BaseModel):
     suo_cd_time: int = 300  # 嗦冷却时间
     fuck_cd_time: int = 3600  # 透群友冷却时间
     ban_id_list: str = "123456" # 白名单列表
-    ban_id_set: set[str] = set(ban_id_list.split(",")) if ban_id_list else set() 
-    botname_set: set[str] = ["BOT"]
-    botname: str = next(iter(botname_set))
+    nickname: set[str] = ["BOT"]
 
     @staticmethod
     async def rule(event: GroupMessageEvent) -> bool:
@@ -110,9 +109,17 @@ class Config(BaseModel):
         rand_num = random.random()
         rand_num = random.uniform(0, 1) if rand_num > 0.1 else random.uniform(1, 2)
         return round(rand_num, 3)
-        
+    
+    @staticmethod
+    async def get_stranger_info(client: AsyncClient, uid: int) -> str:
+        try:
+            resp = (await client.get(f"https://api.usuuu.com/qq/{uid}")).json()
+            return resp["data"]["name"]
+        except Exception:
+            return "获取用户id失败"
+            
     @staticmethod
     def plugin_usage():
         """返回功能说明"""
         return Config().usage
-
+        
