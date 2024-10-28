@@ -32,7 +32,7 @@ from .config import Config
 plugin_config = get_plugin_config(Config)
 
 ban_id_set: set[str] = set(plugin_config.ban_id_list.split(",")) if plugin_config.ban_id_list else set()
-botname: str = next(iter(plugin_config.nickname))
+botname: str = next(iter(plugin_config.nickname), "BOT")
 
 class Impart:
     penalties_impact: bool = getattr(get_driver().config, "isalive", False)  # 重置每日活跃度
