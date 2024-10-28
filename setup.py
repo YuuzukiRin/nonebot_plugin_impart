@@ -5,7 +5,7 @@ with open('README.md', encoding="utf-8") as f:
 
 setup(
     name='nonebot-plugin-impart',
-    version='0.1.2',
+    version='0.1.2.3',
     description='NoneBot2 Impart Plugin Plus',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -21,6 +21,7 @@ setup(
         "Pillow>=10.2.0",
         "httpx>=0.27.0",
         "sqlalchemy>=2.0.20",
+        "aiosqlite>=0.19.0",
     ],
     classifiers=[
         'Programming Language :: Python :: 3',
@@ -36,5 +37,3 @@ setup(
     },
     include_package_data=True,
 )
-
-
