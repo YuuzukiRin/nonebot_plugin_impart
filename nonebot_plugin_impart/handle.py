@@ -8,6 +8,7 @@ from nonebot import get_driver
 from nonebot.adapters.onebot.v11 import Bot, GroupMessageEvent, Message, MessageSegment
 from nonebot.matcher import Matcher
 from nonebot.params import CommandArg, RegexGroup
+from httpx import AsyncClient
 
 from .data_sheet import (
     add_new_user,
@@ -30,26 +31,29 @@ from nonebot import get_plugin_config
 from .config import Config
 plugin_config = get_plugin_config(Config)
 
+ban_id_set: set[str] = set(plugin_config.ban_id_list.split(",")) if plugin_config.ban_id_list else set()
+botname: str = next(iter(plugin_config.nickname))
+
 class Impart:
     penalties_impact: bool = getattr(get_driver().config, "isalive", False)  # 重置每日活跃度
 
     @staticmethod
-    def penalties_and_resets() -> None:
+    async def penalties_and_resets() -> None:
         """重置每日活跃度"""
         if Impart.penalties_impact:
-            punish_all_inactive_users()
+            await punish_all_inactive_users()
 
     @staticmethod                
-    def adjust_win_probability(uid: int, multiplier: float) -> None:
+    async def adjust_win_probability(uid: int, multiplier: float) -> None:
         """调整胜率"""
-        current_probability = get_win_probability(uid)
+        current_probability = await get_win_probability(uid)
         new_probability = current_probability * multiplier
-        set_win_probability(uid, new_probability - current_probability)
+        await set_win_probability(uid, new_probability - current_probability)
         
     @staticmethod
     async def pk(matcher: Matcher, event: GroupMessageEvent) -> None:
         """pk的响应器"""
-        if not check_group_allow(event.group_id):
+        if not await check_group_allow(event.group_id):
             await matcher.finish(plugin_config.not_allow, at_sender=True)
 
         uid: str = event.get_user_id()
@@ -66,32 +70,32 @@ class Impart:
             await matcher.finish("你不能pk自己喵", at_sender=True)
 
         # 执行pk逻辑
-        if is_in_table(userid=int(uid)) and is_in_table(int(at)):
+        if await is_in_table(userid=int(uid)) and await is_in_table(int(at)):
             random_num = random.random()
-            win = random_num < get_win_probability(userid=int(uid))
+            win = random_num < await get_win_probability(userid=int(uid))
             random_num: float = plugin_config.get_random_num()  # 重新生成一个随机数
-            uid_length = get_jj_length(int(uid))
-            at_length = get_jj_length(int(at))
+            uid_length = await get_jj_length(int(uid))
+            at_length = await get_jj_length(int(at))
             length_increase = round(random_num / 2, 3)
             length_decrease = random_num
             if win:
-                set_win_probability(int(uid), -0.01)
-                set_win_probability(int(at), 0.01)
-                set_jj_length(int(uid), random_num / 2)
-                set_jj_length(int(at), -random_num)
+                await set_win_probability(int(uid), -0.01)
+                await set_win_probability(int(at), 0.01)
+                await set_jj_length(int(uid), random_num / 2)
+                await set_jj_length(int(at), -random_num)
                 await Impart.handle_pk_win(matcher, uid, at, uid_length, at_length, length_increase, length_decrease)
             else:
-                set_win_probability(int(uid), 0.01) # 己方，增加1%的获胜概率
-                set_win_probability(int(at), -0.01) # 对方，减少1%的获胜概率
-                set_jj_length(int(uid), -random_num)
-                set_jj_length(int(at), random_num / 2)
+                await set_win_probability(int(uid), 0.01) # 己方，增加1%的获胜概率
+                await set_win_probability(int(at), -0.01) # 对方，减少1%的获胜概率
+                await set_jj_length(int(uid), -random_num)
+                await set_jj_length(int(at), random_num / 2)
                 await Impart.handle_pk_loss(matcher, uid, at, uid_length, at_length, length_increase, length_decrease)
         else:
             # 创建新的用户
-            if not is_in_table(userid=int(uid)):
-                add_new_user(int(uid))
-            if not is_in_table(userid=int(at)):
-                add_new_user(int(at))
+            if not await is_in_table(userid=int(uid)):
+                await add_new_user(int(uid))
+            if not await is_in_table(userid=int(at)):
+                await add_new_user(int(at))
             del plugin_config.pk_cd_data[uid]  # 删除CD时间
             await matcher.finish(
                 f"你或对面还没有创建{choice(plugin_config.jj_variable)}喵, 咱全帮你创建了喵, 你们的{choice(plugin_config.jj_variable)}长度都是10cm喵",
@@ -115,20 +119,23 @@ class Impart:
         
         if is_uid_reach_25:
             Impart.adjust_win_probability(int(uid), 0.80)
-            uid_msg += f"\n检测到你的{choice(plugin_config.jj_variable)}长度超过25cm，已为你开启✨“登神长阶”✨，你现在的获胜概率变为当前的80%，且无法使用“打胶”与“嗦”指令，请以将{choice(plugin_config.jj_variable)}长度提升至30cm为目标与他人pk吧!"
+            uid_msg += (f"\n{botname}检测到你的{choice(plugin_config.jj_variable)}长度超过25cm，已为你开启✨“登神长阶”✨"
+                        f"\n你现在的获胜概率变为当前的80%，且无法使用“打胶”与“嗦”指令，请以将{choice(plugin_config.jj_variable)}长度提升至30cm为目标与他人pk吧!")
         elif is_uid_reach_30:
             Impart.adjust_win_probability(int(uid), 1.25)
-            uid_msg += f"\n🎉恭喜你完成登神挑战🎉\n你的{choice(plugin_config.jj_variable)}长度已超过30cm，授予你🎊“牛々の神”🎊称号\n你的获胜概率已恢复，“打胶”与“嗦”指令已重新开放，切记不忘初心，继续冲击更高的境界喵！"
+            uid_msg += (f"\n🎉恭喜你完成登神挑战🎉\n你的{choice(plugin_config.jj_variable)}长度已超过30cm，授予你🎊“牛々の神”🎊称号"
+                        f"\n你的获胜概率已恢复，“打胶”与“嗦”指令已重新开放，切记不忘初心，继续冲击更高的境界喵！")
 
         # 根据 AT 条件调整消息
         if is_at_below_25:
             Impart.adjust_win_probability(int(at), 1.25)
-            set_jj_length(int(at), -5)
-            uid_msg += f"\n由于你对决的胜利，{plugin_config.botname}检测到TA的{choice(plugin_config.jj_variable)}长度已不足25cm，很遗憾，TA的登神挑战失败，{plugin_config.botname}替TA感谢你的鞭策喵！\nTA的{choice(plugin_config.jj_variable)}长度缩短了5cm喵，获胜概率已恢复，“打胶”与“嗦”指令已重新开放喵！"
+            await set_jj_length(int(at), -5)
+            uid_msg += (f"\n由于你对决的胜利，{botname}检测到TA的{choice(plugin_config.jj_variable)}长度已不足25cm，很遗憾，TA的登神挑战失败，{botname}替TA感谢你的鞭策喵！"
+                        f"\nTA的{choice(plugin_config.jj_variable)}长度缩短了5cm喵，获胜概率已恢复，“打胶”与“嗦”指令已重新开放喵！")
         elif is_at_below_0:
-            uid_msg += f"\n由于你对决的胜利，{plugin_config.botname}检测到TA已经变成女孩子了喵！"
+            uid_msg += f"\n由于你对决的胜利，{botname}检测到TA已经变成女孩子了喵！"
             
-        probability_msg = f"\n你的胜率现在为{get_win_probability(userid=int(uid)):.0%}喵"
+        probability_msg = f"\n你的胜率现在为{await get_win_probability(userid=int(uid)):.0%}喵"
         
         await matcher.finish(f"{uid_msg}{probability_msg}", at_sender=True)
         
@@ -145,19 +152,22 @@ class Impart:
 
         if is_uid_below_25:
             Impart.adjust_win_probability(int(uid), 1.25)
-            set_jj_length(int(uid), -5)
-            uid_msg += f"\n很遗憾，登神挑战失败，别气馁啦！\n你的{choice(plugin_config.jj_variable)}长度缩短了5cm喵，获胜概率已恢复，“打胶”与“嗦”指令已重新开放喵！"
+            await set_jj_length(int(uid), -5)
+            uid_msg += (f"\n很遗憾，登神挑战失败，别气馁啦！"
+                        f"\n你的{choice(plugin_config.jj_variable)}长度缩短了5cm喵，获胜概率已恢复，“打胶”与“嗦”指令已重新开放喵！")
         elif is_uid_below_0:
             uid_msg += f"\n你醒啦, 你已经变成女孩子了！"
 
         if is_at_reach_25:
             Impart.adjust_win_probability(int(at), 0.80)
-            uid_msg += f"\n由于你对决的失败，触犯到了神秘的禁忌，{plugin_config.botname}检测到TA的{choice(plugin_config.jj_variable)}长度超过25cm，已为TA开启✨“登神长阶”✨，现在TA的获胜概率变为当前的80%，且无法使用“打胶”与“嗦”指令，请通知TA以将{choice(plugin_config.jj_variable)}长度提升至30cm为目标与群友pk吧！"
+            uid_msg += (f"\n由于你对决的失败，触犯到了神秘的禁忌，{botname}检测到TA的{choice(plugin_config.jj_variable)}长度超过25cm，已为TA开启✨“登神长阶”✨"
+                        f"\n现在TA的获胜概率变为当前的80%，且无法使用“打胶”与“嗦”指令，请通知TA以将{choice(plugin_config.jj_variable)}长度提升至30cm为目标与群友pk吧！")
         elif is_at_reach_30:
             Impart.adjust_win_probability(int(at), 1.25)
-            uid_msg += f"\n🎉恭喜你帮助TA完成登神挑战🎉\nTA的{choice(plugin_config.jj_variable)}长度超过30cm，授予TA🎊“牛々の神”🎊称号，TA的获胜概率已恢复，“打胶”与“嗦”指令已重新开放，请提醒TA不忘初心，继续冲击更高的境界喵！"
+            uid_msg += (f"\n🎉恭喜你帮助TA完成登神挑战🎉\nTA的{choice(plugin_config.jj_variable)}长度超过30cm，授予TA🎊“牛々の神”🎊称号"
+                        f"\nTA的获胜概率已恢复，“打胶”与“嗦”指令已重新开放，请提醒TA不忘初心，继续冲击更高的境界喵！")
 
-        probability_msg = f"\n你的胜率现在为{get_win_probability(userid=int(uid)):.0%}喵"
+        probability_msg = f"\n你的胜率现在为{await get_win_probability(userid=int(uid)):.0%}喵"
         
         await matcher.finish(f"{uid_msg}{probability_msg}", at_sender=True)
             
@@ -165,7 +175,7 @@ class Impart:
     async def dajiao(matcher: Matcher, event: GroupMessageEvent) -> None:
         """打胶的响应器"""
         # 检查群组权限
-        if not check_group_allow(event.group_id):
+        if not await check_group_allow(event.group_id):
             await matcher.finish(plugin_config.not_allow, at_sender=True)
         # 获取用户ID
         uid: str = event.get_user_id()        
@@ -181,8 +191,8 @@ class Impart:
         plugin_config.cd_data[uid] = time.time()
         
         # 检查用户数据
-        if not is_in_table(userid=int(uid)):
-            add_new_user(int(uid))  # 创建新用户
+        if not await is_in_table(userid=int(uid)):
+            await add_new_user(int(uid))  # 创建新用户
             await matcher.finish(
                 f"你还没有创建{choice(plugin_config.jj_variable)}, 咱帮你创建了喵, 目前长度是10cm喵",
                 at_sender=True,
@@ -190,7 +200,7 @@ class Impart:
             return
 
         # 获取当前长度和随机数
-        uid_length: int = get_jj_length(int(uid))
+        uid_length: int = await get_jj_length(int(uid))
         random_num: int = plugin_config.get_random_num()        
 
         # 牛子长度范围限制
@@ -203,25 +213,25 @@ class Impart:
 
         # 增长逻辑
         if uid_length < 25 <= uid_length + random_num:
-            set_jj_length(int(uid), random_num)
+            await set_jj_length(int(uid), random_num)
             Impart.adjust_win_probability(int(uid), 0.80)
             await matcher.finish(
-                f"打胶结束喵, 你的{choice(plugin_config.jj_variable)}很满意喵, 长了{random_num}cm喵\n由于你无休止的打胶，触犯到了神秘的禁忌，"
-                f"{plugin_config.botname}检测到你的{choice(plugin_config.jj_variable)}长度超过25cm，已为你开启✨“登神长阶”✨，你现在的获胜概率变为当前的80%，"
-                f"且无法使用“打胶”与“嗦”指令，请以将{choice(plugin_config.jj_variable)}长度提升至30cm为目标与他人pk吧！",
+                f"打胶结束喵, 你的{choice(plugin_config.jj_variable)}很满意喵, 长了{random_num}cm喵"
+                f"\n由于你无休止的打胶，触犯到了神秘的禁忌，{botname}检测到你的{choice(plugin_config.jj_variable)}长度超过25cm，已为你开启✨“登神长阶”✨"
+                f"\n你现在的获胜概率变为当前的80%，且无法使用“打胶”与“嗦”指令，请以将{choice(plugin_config.jj_variable)}长度提升至30cm为目标与他人pk吧！",
                 at_sender=True,
             )
         else:
-            set_jj_length(int(uid), random_num)
+            await set_jj_length(int(uid), random_num)
             await matcher.finish(
-                f"打胶结束喵, 你的{choice(plugin_config.jj_variable)}很满意喵, 长了{random_num}cm喵, 目前长度为{get_jj_length(int(uid))}cm喵",
+                f"打胶结束喵, 你的{choice(plugin_config.jj_variable)}很满意喵, 长了{random_num}cm喵, 目前长度为{await get_jj_length(int(uid))}cm喵",
                 at_sender=True,
             )
 
     @staticmethod
     async def suo(matcher: Matcher, event: GroupMessageEvent) -> None:
         """嗦牛子的响应器"""
-        if not check_group_allow(event.group_id):
+        if not await check_group_allow(event.group_id):
             await matcher.finish(plugin_config.not_allow, at_sender=True)
 
         uid: str = event.get_user_id()        
@@ -240,15 +250,15 @@ class Impart:
         target_id = int(uid if at == "寄" else at)  # 如果没有at，则使用自己的uid
         pronoun = "你" if at == "寄" else "TA"  # 判断是自己还是被@用户
         
-        if not is_in_table(userid=target_id):
-            add_new_user(target_id)
+        if not await is_in_table(userid=target_id):
+            await add_new_user(target_id)
             del plugin_config.suo_cd_data[uid]  # 删除CD时间
             msg = f"{pronoun}还没有创建{choice(plugin_config.jj_variable)}喵, 咱帮{pronoun}创建了喵, 目前长度是10cm喵"
             await matcher.finish(msg, at_sender=True)    
             return
 
         # 获取当前长度和随机数
-        current_length: int = get_jj_length(target_id)
+        current_length: int = await get_jj_length(target_id)
         random_num: int = plugin_config.get_random_num()        
 
         if 25 <= current_length < 30:
@@ -258,13 +268,14 @@ class Impart:
 
         # 增长逻辑
         new_length = current_length + random_num
-        set_jj_length(target_id, random_num)
+        await set_jj_length(target_id, random_num)
 
         if current_length < 25 <= new_length:
             Impart.adjust_win_probability(target_id, 0.80)
-            msg = (f"{pronoun}的{choice(plugin_config.jj_variable)}很满意喵, 嗦长了{random_num}cm喵\n"
-                  f"\n由于{pronoun}无休止的嗦与被嗦，触犯到了神秘的禁忌，{plugin_config.botname}检测到{pronoun}的{choice(plugin_config.jj_variable)}长度超过25cm，"
-                  f"\n已为{pronoun}开启✨“登神长阶”✨，{pronoun}现在的获胜概率变为80%，且无法使用“打胶”与“嗦”指令，请以将{choice(plugin_config.jj_variable)}长度提升至30cm为目标与他人pk吧！")
+            msg = (f"{pronoun}的{choice(plugin_config.jj_variable)}很满意喵, 嗦长了{random_num}cm喵"
+                f"\n由于{pronoun}无休止的嗦与被嗦，触犯到了神秘的禁忌，{botname}检测到{pronoun}的{choice(plugin_config.jj_variable)}长度超过25cm，"
+                f"\n已为{pronoun}开启✨“登神长阶”✨，{pronoun}现在的获胜概率变为80%，且无法使用“打胶”与“嗦”指令，请以将{choice(plugin_config.jj_variable)}长度提升至30cm为目标与他人pk吧！"
+            )
             await matcher.finish(msg, at_sender=True)
         else:
             msg = f"{pronoun}的{choice(plugin_config.jj_variable)}很满意喵, 嗦长了{random_num}cm喵, 目前长度为{new_length}cm喵"
@@ -273,7 +284,7 @@ class Impart:
     @staticmethod
     async def queryjj(matcher: Matcher, event: GroupMessageEvent) -> None:
         """查询某人jj的响应器"""
-        if not check_group_allow(event.group_id):
+        if not await check_group_allow(event.group_id):
             await matcher.finish(plugin_config.not_allow, at_sender=True)
 
         uid: str = event.get_user_id()
@@ -282,12 +293,12 @@ class Impart:
         pronoun = "你" if at == "寄" else "TA"
 
         # 创建用户数据如果不存在
-        if not is_in_table(userid=target_id):
-            add_new_user(target_id)
+        if not await is_in_table(userid=target_id):
+            await add_new_user(target_id)
             msg = f"{pronoun}还没有创建{choice(plugin_config.jj_variable)}喵, 咱帮{pronoun}创建了喵, 目前长度是10cm喵"
             await matcher.finish(msg, at_sender=True)
 
-        length: int = get_jj_length(target_id)
+        length: int = await get_jj_length(target_id)
 
         # 根据不同的长度范围生成响应消息
         if length >= 30:
@@ -306,10 +317,10 @@ class Impart:
     @staticmethod
     async def jjrank(bot: Bot, matcher: Matcher, event: GroupMessageEvent) -> None:
         """输出前五后五和自己的排名"""
-        if not check_group_allow(event.group_id):
-            await matcher.finish(utils.not_allow, at_sender=True)
+        if not await check_group_allow(event.group_id):
+            await matcher.finish(plugin_config.not_allow, at_sender=True)
         uid: int = event.user_id
-        rankdata: List[Dict] = get_sorted()
+        rankdata: List[Dict] = await get_sorted()
         if len(rankdata) < 5:
             await matcher.finish("目前记录的数据量小于5, 无法显示rank喵")
         top5: List = rankdata[:5]  # 取前5
@@ -317,18 +328,18 @@ class Impart:
         # 获取自己的排名
         index: List = [i for i in range(len(rankdata)) if rankdata[i]["userid"] == uid]
         if not index:  # 如果用户没有创建JJ
-            add_new_user(uid)
+            await add_new_user(uid)
             await matcher.finish(
-                f"你还没有创建{choice(utils.jj_variable)}看不到rank喵, 咱帮你创建了喵, 目前长度是10cm喵",
+                f"你还没有创建{choice(plugin_config.jj_variable)}看不到rank喵, 咱帮你创建了喵, 目前长度是10cm喵",
                 at_sender=True,
             )
         # top5和end5的信息，然后获取其网名
         async with AsyncClient() as client:
             top5names = await asyncio.gather(
-                *[utils.get_stranger_info(client, name["userid"]) for name in top5]
+                *[plugin_config.get_stranger_info(client, name["userid"]) for name in top5]
             )
             last5names = await asyncio.gather(
-                *[utils.get_stranger_info(client, name["userid"]) for name in last5]
+                *[plugin_config.get_stranger_info(client, name["userid"]) for name in last5]
             )
 
         data = {top5names[i]: top5[i]["jj_length"] for i in range(len(top5))}
@@ -347,7 +358,7 @@ class Impart:
     ) -> Tuple[int, str, str, list]:
         """透群员的预处理环节"""
         gid, uid = event.group_id, event.user_id
-        if not check_group_allow(event.group_id):
+        if not await check_group_allow(event.group_id):
             await matcher.finish(plugin_config.not_allow, at_sender=True)
         allow = await plugin_config.fuck_cd_check(event)  # CD检查是否允许
         if not allow:
@@ -374,21 +385,21 @@ class Impart:
 
         if target == "寄":  # 没有@对象
             # 随机抽取幸运成员
-            prep_list = [user for user in prep_list if str(user) not in plugin_config.ban_id_set]  # 排除QQ号列表中的用户
+            prep_list = [user for user in prep_list if str(user) not in ban_id_set]  # 排除QQ号列表中的用户
             if not prep_list:  # 如果排除后没有有效用户
-                prep_list = [user for user in prep_list if str(user) in plugin_config.ban_id_set]  # 从排除的用户中抽取
+                prep_list = [user for user in prep_list if str(user) in ban_id_set]  # 从排除的用户中抽取
 
             if uid in prep_list:
                 prep_list.remove(uid)  # 移除当前用户
 
             lucky_user = choice(prep_list)
-            jj_length = get_jj_length(int(uid))
+            jj_length = await get_jj_length(int(uid))
 
             if jj_length > 5:
                 await matcher.send(f"现在咱将随机抽取一位幸运群友\n送给{req_user_card}色色！")
             elif 5 >= jj_length > 0:
                 if random_nn < 0.5:  # 50%概率
-                    await matcher.send(f"{plugin_config.botname}发现你是xnn~现在咱将{req_user_card}\n送给随机一位幸运群友色色！")
+                    await matcher.send(f"{botname}发现你是xnn~现在咱将{req_user_card}\n送给随机一位幸运群友色色！")
                 else:
                     await matcher.send(f"现在咱将随机抽取一位幸运群友\n送给{req_user_card}色色！")
             else:
@@ -414,11 +425,11 @@ class Impart:
             del plugin_config.ejaculation_cd[str(uid)]
             await matcher.finish("你透你自己?")
 
-        jj_length = get_jj_length(uid)
+        jj_length = await get_jj_length(uid)
         if jj_length <= 0:
             await matcher.send(f"唔...你透不了哦~\n现在咱将{req_user_card}\n送给群主色色！")
         elif 5 >= jj_length > 0 and random_nn < 0.5:
-            await matcher.send(f"{plugin_config.botname}发现你是xnn~现在咱将{req_user_card}\n送给群主色色！")
+            await matcher.send(f"{botname}发现你是xnn~现在咱将{req_user_card}\n送给群主色色！")
         else:
             await matcher.send(f"现在咱将把群主\n送给{req_user_card}色色！")
 
@@ -433,11 +444,11 @@ class Impart:
         random_nn: float  # 添加 random_nn 参数
     ) -> str:
         admin_id: list = [
-            prep["user_id"] for prep in prep_list if prep["role"] == "admin" and str(prep["user_id"]) not in plugin_config.ban_id_set
+            prep["user_id"] for prep in prep_list if prep["role"] == "admin" and str(prep["user_id"]) not in ban_id_set
         ]
         if not admin_id:  # 如果排除后没有有效用户
                 admin_id: list = [
-            prep["user_id"] for prep in prep_list if prep["role"] == "admin" and str(prep["user_id"]) in plugin_config.ban_id_set
+            prep["user_id"] for prep in prep_list if prep["role"] == "admin" and str(prep["user_id"]) in ban_id_set
         ]  # 从排除的用户中抽取
         
         if uid in admin_id:  # 如果自己是管理的话， 移除自己
@@ -447,12 +458,12 @@ class Impart:
             await matcher.finish("喵喵喵? 找不到群管理!")
 
         lucky_user: str = choice(admin_id)  # random抽取一个管理
-        jj_length = get_jj_length(uid)
+        jj_length = await get_jj_length(uid)
 
         if jj_length <= 0:
             await matcher.send(f"唔...你透不了哦~\n现在咱将{req_user_card}\n送给随机一位管理色色！")
         elif 5 >= jj_length > 0 and random_nn < 0.5:
-            await matcher.send(f"{plugin_config.botname}发现你是xnn~现在咱将{req_user_card}\n送给随机一位管理色色！")
+            await matcher.send(f"{botname}发现你是xnn~现在咱将{req_user_card}\n送给随机一位管理色色！")
         else:
             await matcher.send(f"现在咱将随机抽取一位幸运管理\n送给{req_user_card}色色！")
 
@@ -482,7 +493,7 @@ class Impart:
         event: GroupMessageEvent,
         args: Tuple = RegexGroup(),
     ) -> None:
-        if not check_group_allow(event.group_id):
+        if not await check_group_allow(event.group_id):
             await matcher.finish(plugin_config.not_allow, at_sender=True)
         uid, req_user_card, command, prep_list = await self.yinpa_prehandle(
             matcher=matcher, bot=bot, args=args, event=event
@@ -509,22 +520,22 @@ class Impart:
         )
 
         await asyncio.sleep(2)  # 休眠2秒, 更有效果
-        update_activity(int(lucky_user))  # 更新活跃度
-        update_activity(uid)  # 更新活跃度
+        await update_activity(int(lucky_user))  # 更新活跃度
+        await update_activity(uid)  # 更新活跃度
 
-        # 检查get_jj_length的返回值并确定好要发送的消息
-        jj_length = get_jj_length(uid)
+        # 检查await get_jj_length的返回值并确定好要发送的消息
+        jj_length = await get_jj_length(uid)
         if jj_length <= 0 or (5 >= jj_length > 0 and random_nn < 0.5):
             # 1--100的随机数， 保留三位
             ejaculation = round(random.uniform(1, 100), 3)
-            insert_ejaculation(int(uid), ejaculation)
+            await insert_ejaculation(int(uid), ejaculation)
             # 互换req_user_card与lucky_user_card
-            repo_1 = f"好欸！{lucky_user_card}({lucky_user})用时{random.randint(1, 20)}秒 \n给 {req_user_card}({uid}) 注入了{ejaculation}毫升的脱氧核糖核酸, 当日总注入量为：{get_today_ejaculation_data(int(uid))}毫升\n"
+            repo_1 = f"好欸！{lucky_user_card}({lucky_user})用时{random.randint(1, 20)}秒 \n给 {req_user_card}({uid}) 注入了{ejaculation}毫升的脱氧核糖核酸, 当日总注入量为：{await get_today_ejaculation_data(int(uid))}毫升\n"
         else:
             # 1--100的随机数， 保留三位
             ejaculation = round(random.uniform(1, 100), 3)
-            insert_ejaculation(int(lucky_user), ejaculation)
-            repo_1 = f"好欸！{req_user_card}({uid})用时{random.randint(1, 20)}秒 \n给 {lucky_user_card}({lucky_user}) 注入了{ejaculation}毫升的脱氧核糖核酸, 当日总注入量为：{get_today_ejaculation_data(int(lucky_user))}毫升\n"
+            await insert_ejaculation(int(lucky_user), ejaculation)
+            repo_1 = f"好欸！{req_user_card}({uid})用时{random.randint(1, 20)}秒 \n给 {lucky_user_card}({lucky_user}) 注入了{ejaculation}毫升的脱氧核糖核酸, 当日总注入量为：{await get_today_ejaculation_data(int(lucky_user))}毫升\n"
 
         await matcher.send(
             repo_1
@@ -539,10 +550,10 @@ class Impart:
         gid: int = event.group_id
         command: str = args[0]
         if "开启" in command or "开始" in command:
-            set_group_allow(gid, True)
+            await set_group_allow(gid, True)
             await matcher.finish("功能已开启喵")
         elif "禁止" in command or "关闭" in command:
-            set_group_allow(gid, False)
+            await set_group_allow(gid, False)
             await matcher.finish("功能已禁用喵")
 
     @staticmethod
@@ -550,7 +561,7 @@ class Impart:
         matcher: Matcher, event: GroupMessageEvent, args: Message = CommandArg()
     ) -> None:
         """查询某人的注入量"""
-        if not check_group_allow(event.group_id):
+        if not await check_group_allow(event.group_id):
             await matcher.finish(plugin_config.not_allow, at_sender=True)
         target = args.extract_plain_text()  # 获取命令参数
         user_id: str = event.get_user_id()
@@ -561,7 +572,7 @@ class Impart:
             else [user_id, "您"]
         )
         #  获取用户的所有注入数据
-        data: List[Dict] = get_ejaculation_data(int(object_id))
+        data: List[Dict] = await get_ejaculation_data(int(object_id))
         ejaculation = 0  # 先初始化0
         if "历史" in target or "全部" in target:
             if not data:
@@ -582,7 +593,7 @@ class Impart:
                 )
             )
         else:
-            ejaculation: float = get_today_ejaculation_data(int(object_id))
+            ejaculation: float = await get_today_ejaculation_data(int(object_id))
             await matcher.finish(f"{replay1}当日总被注射量为{ejaculation}ml")
 
     @staticmethod
