@@ -1,5 +1,6 @@
 """插件入口"""
 import contextlib
+import asyncio
 from re import I
 from nonebot import on_command, on_regex, require
 from nonebot.plugin import PluginMetadata
@@ -7,9 +8,11 @@ from nonebot.adapters.onebot.v11.permission import GROUP_ADMIN, GROUP_OWNER
 from nonebot.permission import SUPERUSER
 from .handle import impart
 from .config import Config
+from .data_sheet import init_db
 require("nonebot_plugin_apscheduler")
 from nonebot_plugin_apscheduler import scheduler
 
+asyncio.run(init_db())
 scheduler.add_job(impart.penalties_and_resets, "cron", hour = 0, misfire_grace_time = 600)
 
 __plugin_meta__ = PluginMetadata(
