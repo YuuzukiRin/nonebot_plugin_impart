@@ -32,12 +32,14 @@ Base = declarative_base()
 class UserData(Base):
     """用户数据表"""
 
-    __tablename__: str = "userdata"
+    __tablename__ = "userdata"
 
     userid = Column(Integer, primary_key=True, index=True)
     jj_length = Column(Float, nullable=False)
     last_masturbation_time = Column(Integer, nullable=False, default=0)
     win_probability = Column(Float, nullable=False, default=0.5)  # 默认胜率为0.5
+    is_challenging = Column(Boolean, nullable=False, default=False)  # 是否在挑战状态
+    challenge_completed = Column(Boolean, nullable=False, default=False)  # 是否完成挑战
 
 
 class GroupData(Base):
@@ -61,18 +63,80 @@ class EjaculationData(Base):
 
 
 async def check_and_add_column():
-    """检查是否存在win_probability列, 若无则添加"""
+    """检查是否存在win_probability、is_challenging、challenge_completed列, 若无则添加"""
     async with engine.begin() as conn:
         result = await conn.execute(sa.text("PRAGMA table_info(userdata)"))        
         columns = [row[1] for row in result] 
         if 'win_probability' not in columns:
             await conn.execute(sa.text("ALTER TABLE userdata ADD COLUMN win_probability FLOAT DEFAULT 0.5"))
+        if 'is_challenging' not in columns:
+            await conn.execute(sa.text("ALTER TABLE userdata ADD COLUMN is_challenging BOOLEAN DEFAULT FALSE"))
+        if 'challenge_completed' not in columns:
+            await conn.execute(sa.text("ALTER TABLE userdata ADD COLUMN challenge_completed BOOLEAN DEFAULT FALSE"))
 
             
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     await check_and_add_column()
+    
+    
+async def update_challenge_status(userid: int) -> str:
+    """根据用户的jj_length、is_challenging和challenge_completed状态更新用户的挑战状态和胜率"""
+
+    async with async_session() as s:
+        result = await s.execute(select(UserData).where(UserData.userid == userid))
+        user = result.scalar()
+
+        if not user:
+            return "user_not_found"
+
+        jj_length = user.jj_length
+        is_challenging = user.is_challenging
+        challenge_completed = user.challenge_completed
+        win_probability = user.win_probability
+
+        response = ""
+
+        if not is_challenging and not challenge_completed and 25 <= jj_length < 30:
+            user.is_challenging = True
+            user.win_probability *= 0.8
+            response = "challenge_started_low_win"
+
+        elif not is_challenging and not challenge_completed and jj_length >= 30:
+            user.challenge_completed = True
+            response = "challenge_completed"
+
+        elif is_challenging and not challenge_completed and jj_length < 25:
+            user.win_probability *= 1.25
+            user.jj_length -= 5
+            user.is_challenging = False
+            response = "challenge_failed_high_win"
+
+        elif is_challenging and not challenge_completed and jj_length >= 30:
+            user.win_probability *= 1.25
+            user.is_challenging = False
+            user.challenge_completed = True
+            response = "challenge_success_high_win"
+            
+        elif is_challenging and 25 <= jj_length < 30:
+            response = "is_challenging"
+            
+        elif challenge_completed and 25 <= jj_length < 30:
+            response = "challenge_completed"
+            
+        elif challenge_completed and jj_length <= 25:
+            user.jj_length -= 5
+            response = "challenge_completed_reduce"
+            
+        elif 0 < jj_length <= 5:
+            response = "length_near_zero"
+
+        elif jj_length <= 0:
+            response = "length_zero_or_negative"
+
+        await s.commit()
+        return response
 
 
 async def is_in_table(userid: int) -> bool:
