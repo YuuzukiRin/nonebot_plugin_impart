@@ -319,12 +319,22 @@ class Impart:
         """输出前五后五和自己的排名"""
         if not await check_group_allow(event.group_id):
             await matcher.finish(plugin_config.not_allow, at_sender=True)
+
         uid: int = event.user_id
         rankdata: List[Dict] = await get_sorted()
+
+        # 去重处理，确保每个用户唯一
+        unique_users = {}
+        for entry in rankdata:
+            unique_users[entry["userid"]] = entry
+        rankdata = list(unique_users.values())
+
         if len(rankdata) < 5:
             await matcher.finish("目前记录的数据量小于5, 无法显示rank喵")
+
         top5: List = rankdata[:5]  # 取前5
         last5: List = rankdata[-5:]  # 取后5
+
         # 获取自己的排名
         index: List = [i for i in range(len(rankdata)) if rankdata[i]["userid"] == uid]
         if not index:  # 如果用户没有创建JJ
@@ -333,20 +343,23 @@ class Impart:
                 f"你还没有创建{choice(plugin_config.jj_variable)}看不到rank喵, 咱帮你创建了喵, 目前长度是10cm喵",
                 at_sender=True,
             )
-        # top5和end5的信息，然后获取其网名
-        async with AsyncClient() as client:
-            top5names = await asyncio.gather(
-                *[plugin_config.get_stranger_info(client, name["userid"]) for name in top5]
-            )
-            last5names = await asyncio.gather(
-                *[plugin_config.get_stranger_info(client, name["userid"]) for name in last5]
-            )
 
-        data = {top5names[i]: top5[i]["jj_length"] for i in range(len(top5))}
+        # top5和last5的信息，然后获取其网名
+        user_ids_to_fetch = {entry["userid"] for entry in top5 + last5}
+        
+        async with AsyncClient() as client:
+            user_info_tasks = {uid: plugin_config.get_stranger_info(client, uid) for uid in user_ids_to_fetch}
+            user_info = await asyncio.gather(*user_info_tasks.values())
+            
+            # 创建一个用户ID到名称的映射
+            user_names = {uid: name for uid, name in zip(user_ids_to_fetch, user_info)}
+
+        data = {user_names[top5[i]["userid"]]: top5[i]["jj_length"] for i in range(len(top5))}
         for i in range(len(last5)):
-            data[last5names[i]] = last5[i]["jj_length"]
+            data[user_names[last5[i]["userid"]]] = last5[i]["jj_length"]
+
         img_bytes = await draw_bar_chart.draw_bar_chart(data)
-        reply2 = f"你的排名为{index[0]+1}喵"
+        reply2 = f"你的排名为{index[0] + 1}喵"
         await matcher.finish(MessageSegment.image(img_bytes) + reply2, at_sender=True)
 
     @staticmethod
