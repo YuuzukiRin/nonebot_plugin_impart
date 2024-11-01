@@ -59,15 +59,16 @@ on_command(
     handlers=[impart.queryjj]
 )
 
-on_command(
-    "jj排行榜",
-    aliases={"jj排名", "jj榜单", "jjrank", "牛子排行榜"},
+on_regex(
+    r"^(jj|牛牛)(排行榜|排名|榜单|rank)",
+    flags=I,
     priority=20,
     block=True,
     handlers=[impart.jjrank],
 )
+
 on_regex(
-    r"^(日群友|透群友|日群主|透群主|日管理|透管理)",
+    r"^(日群友|日群主|日管理|透群友|透群主|透管理)",
     flags=I,
     priority=20,
     block=True,
@@ -75,7 +76,7 @@ on_regex(
 )
 
 on_regex(
-    r"^(开始银趴|开启银趴|关闭银趴|禁止银趴|开始impart|开启impart|关闭impart|禁止impart)",
+    r"^(开始|开启|关闭|禁止)(银趴|impart)",
     permission=SUPERUSER | GROUP_ADMIN | GROUP_OWNER,
     flags=I,
     priority=10,
@@ -91,11 +92,10 @@ on_command(
     handlers=[impart.query_injection],
 )
 
-on_command(
-    "银趴介绍", 
-    aliases={"impart介绍", "银趴帮助"},
+on_regex(
+    r"^(银趴|impart)(介绍|帮助)$",
+    flags=I,
     priority=20, 
     block=True,
     handlers=[impart.yinpa_introduce]
 )
-
