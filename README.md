@@ -65,6 +65,7 @@ nonebot-plugin-impart 是基于项目 [Special-Week/nonebot_plugin_impact](https
 </details>
 
 ## 🖇️ 迁移原插件数据库
+如果你先前使用 [nonebot_plugin_impact](https://github.com/Special-Week/nonebot_plugin_impact) , 并想要迁移数据  
 找到你的原插件数据库(通常位于 : 你的项目目录\data\impact\impact.db)  
 将impact.db重命名为impart.db  
 在你的项目目录下使用 `nb localstore` 命令来检查数据存储路径Data Dir: \nonebot2  
