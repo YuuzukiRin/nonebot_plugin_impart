@@ -2,6 +2,7 @@
 import os
 import random
 import time
+import sqlalchemy as sa
 from typing import Dict, List
 
 from sqlalchemy import (
@@ -59,9 +60,19 @@ class EjaculationData(Base):
     volume = Column(Float, nullable=False)
 
 
+async def check_and_add_column():
+    """检查是否存在win_probability列, 若无则添加"""
+    async with engine.begin() as conn:
+        result = await conn.execute(sa.text("PRAGMA table_info(userdata)"))        
+        columns = [row[1] for row in result] 
+        if 'win_probability' not in columns:
+            await conn.execute(sa.text("ALTER TABLE userdata ADD COLUMN win_probability FLOAT DEFAULT 0.5"))
+
+            
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    await check_and_add_column()
 
 
 async def is_in_table(userid: int) -> bool:
