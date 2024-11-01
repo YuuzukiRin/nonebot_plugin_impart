@@ -125,8 +125,9 @@ async def update_challenge_status(userid: int) -> str:
         elif challenge_completed and 25 <= jj_length < 30:
             response = "challenge_completed"
             
-        elif challenge_completed and jj_length <= 25:
+        elif challenge_completed and jj_length < 25:
             user.jj_length -= 5
+            user.challenge_completed = False
             response = "challenge_completed_reduce"
             
         elif 0 < jj_length <= 5:
@@ -137,7 +138,6 @@ async def update_challenge_status(userid: int) -> str:
 
         await s.commit()
         return response
-
 
 async def is_in_table(userid: int) -> bool:
     """传入一个userid，判断是否在表中"""
