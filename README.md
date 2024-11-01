@@ -27,6 +27,7 @@ nonebot-plugin-impart 是基于项目 [Special-Week/nonebot_plugin_impact](https
 - [x]  添加查询检测功能, 当检测到用户用户newnew长度低于5cm判定为xnn, 当检测到长度低于0判定为女孩子
 - [x]  将newnew长度与"透群友"模块联动, 添加🎉反透🎉功能, 当xnn执行"透群友"指令时有50%的概率被对方反透, newnew长度低于0必被反透
 - [x]  添加白名单功能, 执行"透群友"指令时自动过滤白名单列表用户
+- [x]  添加对原插件数据库支持
 ### 功能介绍
 
 - 对pk模块进行~~魔改~~功能添加, 增添胜率保证平衡性, 新增 ✨登神挑战✨, 当检测到用户newnew长度因任意原因(pk/打胶/嗦与被嗦)超过25cm触发挑战, 挑战状态下挑战者的获胜概率变为当前的80%, 且无法使用"打胶"与"嗦"指令(也无法被"嗦"), 只允许通过pk增加newnew长度, 当用户newnew长度因任意原因超过30cm则完成挑战(极小概率), ~~并获得🎊“牛々の神”🎊称号~~, 获胜概率变为当前125%, 重新开放“打胶”与“嗦”指令; 当用户newnew长度因任意原因跌出25cm则挑战失败, 当用户newnew长度在此基础上-5cm, 获胜概率变为当前125%, 重新开放“打胶”与“嗦”指令。
@@ -35,7 +36,7 @@ nonebot-plugin-impart 是基于项目 [Special-Week/nonebot_plugin_impact](https
 
 <details open>
 <summary>直接下载</summary> 
-下载文件，将nonebot_plugin_impart文件夹放入您的nonebot2插件目录内(通常位于 : 您的插件根目录\src\plugins)
+下载文件，将nonebot_plugin_impart文件夹放入您的nonebot2插件目录内(通常位于 : 你的插件根目录\src\plugins)
 </details>
 
 <details open>
@@ -62,6 +63,12 @@ nonebot-plugin-impart 是基于项目 [Special-Week/nonebot_plugin_impact](https
     plugins = ["nonebot_plugin_impart"]
 
 </details>
+
+## 🖇️ 迁移原插件数据库
+找到你的原插件数据库(通常位于 : 你的项目目录\data\impact\impact.db)  
+将impact.db重命名为impart.db  
+在你的项目目录下使用 `nb localstore` 命令来检查数据存储路径Data Dir: \nonebot2  
+将impart.db放入\nonebot2\nonebot_plugin_impart文件夹中即可
 
 ## ⚙️ 配置
 
