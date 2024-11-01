@@ -144,13 +144,18 @@ async def check_group_allow(groupid: int) -> bool:
 
 async def set_group_allow(groupid: int, allow: bool) -> None:
     """设置群聊开启或者禁止银趴, 传入群号, 类型是int, 以及allow, 类型是bool"""
-    async with async_session() as s:
-        if not await check_group_allow(groupid):
-            s.add(GroupData(groupid=groupid, allow=False))
-        await s.execute(
-            update(GroupData).where(GroupData.groupid == groupid).values(allow=allow)
-        )
-        await s.commit()
+    async with async_session() as session:
+        # 检查该 groupid 是否已存在
+        result = await session.execute(select(GroupData).where(GroupData.groupid == groupid))
+        existing_group = result.scalar_one_or_none()  # 获取单个记录或 None
+        if existing_group is None:
+            # 如果不存在，则插入新记录
+            new_group_data = GroupData(groupid=groupid, allow=allow)
+            session.add(new_group_data)
+        else:
+            # 如果已存在，更新 allow 字段
+            existing_group.allow = allow
+        await session.commit()
 
 
 def get_today() -> str:
