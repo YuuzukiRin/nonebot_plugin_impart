@@ -40,6 +40,8 @@ class UserData(Base):
     win_probability = Column(Float, nullable=False, default=0.5)  # 默认胜率为0.5
     is_challenging = Column(Boolean, nullable=False, default=False)  # 是否在挑战状态
     challenge_completed = Column(Boolean, nullable=False, default=False)  # 是否完成挑战
+    is_near_zero = Column(Boolean, nullable=False, default=False)
+    is_zero_or_neg = Column(Boolean, nullable=False, default=False)
 
 
 class GroupData(Base):
@@ -73,7 +75,10 @@ async def check_and_add_column():
             await conn.execute(sa.text("ALTER TABLE userdata ADD COLUMN is_challenging BOOLEAN DEFAULT FALSE"))
         if 'challenge_completed' not in columns:
             await conn.execute(sa.text("ALTER TABLE userdata ADD COLUMN challenge_completed BOOLEAN DEFAULT FALSE"))
-
+        if 'is_near_zero' not in columns:
+            await conn.execute(sa.text("ALTER TABLE userdata ADD COLUMN is_near_zero BOOLEAN DEFAULT FALSE"))      
+        if 'is_zero_or_neg' not in columns:
+            await conn.execute(sa.text("ALTER TABLE userdata ADD COLUMN is_zero_or_neg BOOLEAN DEFAULT FALSE"))
             
 async def init_db():
     async with engine.begin() as conn:
@@ -95,6 +100,8 @@ async def update_challenge_status(userid: int) -> str:
         is_challenging = user.is_challenging
         challenge_completed = user.challenge_completed
         win_probability = user.win_probability
+        is_near_zero = user.is_near_zero
+        is_zero_or_neg = user.is_zero_or_neg
 
         response = ""
 
@@ -128,22 +135,24 @@ async def update_challenge_status(userid: int) -> str:
         elif challenge_completed and jj_length < 25:
             user.jj_length -= 5
             user.challenge_completed = False
-            response = "challenge_completed_reduce"
+            response = "challenge_completed_reduce"                    
             
-        elif 0 < jj_length <= 5:
+        elif not is_near_zero and 0 < jj_length <= 5:
+            user.is_near_zero = True
             response = "length_near_zero"
-
-        elif jj_length <= 0:
+            
+        elif is_near_zero and (jj_length <= 0 or jj_length > 5):
+            user.is_near_zero = False
+            
+        elif not is_zero_or_neg and jj_length <= 0:
+            user.is_zero_or_neg = True
             response = "length_zero_or_negative"
-
+        
+        elif is_zero_or_neg and jj_length > 0:
+            user.is_zero_or_neg = False
+            
         await s.commit()
         return response
-
-async def is_in_table(userid: int) -> bool:
-    """传入一个userid，判断是否在表中"""
-    async with async_session() as s:
-        result = await s.execute(select(UserData).filter(UserData.userid == userid))
-        return bool(result.scalar())
 
 
 async def add_new_user(userid: int) -> None:
