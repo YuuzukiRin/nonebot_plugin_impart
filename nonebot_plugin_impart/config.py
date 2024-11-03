@@ -40,6 +40,7 @@ class Config(BaseModel):
     suo_cd_time: int = 300  # 嗦冷却时间
     fuck_cd_time: int = 3600  # 透群友冷却时间
     ban_id_list: str = "123456" # 白名单列表
+    isalive: bool = False  # 不活跃惩罚
     nickname: set[str] = [""]
 
     @staticmethod
