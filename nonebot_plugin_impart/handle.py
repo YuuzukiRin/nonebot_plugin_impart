@@ -4,7 +4,6 @@ import random
 import time
 from random import choice
 from typing import Dict, List, Tuple
-from nonebot import get_driver
 from nonebot.adapters.onebot.v11 import Bot, GroupMessageEvent, Message, MessageSegment
 from nonebot.matcher import Matcher
 from nonebot.params import CommandArg, RegexGroup
@@ -36,7 +35,7 @@ ban_id_set: set[str] = set(plugin_config.ban_id_list.split(",")) if plugin_confi
 botname: str = next(iter(plugin_config.nickname), "BOT")
 
 class Impart:
-    penalties_impact: bool = getattr(get_driver().config, "isalive", False)  # 重置每日活跃度
+    penalties_impact: bool = plugin_config.isalive # 重置每日活跃度
 
     @staticmethod
     async def penalties_and_resets() -> None:
@@ -47,6 +46,7 @@ class Impart:
     @staticmethod
     async def pk(matcher: Matcher, event: GroupMessageEvent) -> None:
         """pk的响应器"""
+        await Impart.penalties_and_resets()
         if not await check_group_allow(event.group_id):
             await matcher.finish(plugin_config.not_allow, at_sender=True)
 
@@ -165,6 +165,7 @@ class Impart:
     @staticmethod
     async def dajiao(matcher: Matcher, event: GroupMessageEvent) -> None:
         """打胶的响应器"""
+        await Impart.penalties_and_resets()
         # 检查群组权限
         if not await check_group_allow(event.group_id):
             await matcher.finish(plugin_config.not_allow, at_sender=True)
@@ -223,6 +224,7 @@ class Impart:
     @staticmethod
     async def suo(matcher: Matcher, event: GroupMessageEvent) -> None:
         """嗦牛子的响应器"""
+        await Impart.penalties_and_resets()
         if not await check_group_allow(event.group_id):
             await matcher.finish(plugin_config.not_allow, at_sender=True)
 
@@ -276,6 +278,7 @@ class Impart:
     @staticmethod
     async def queryjj(matcher: Matcher, event: GroupMessageEvent) -> None:
         """查询某人jj的响应器"""
+        await Impart.penalties_and_resets()
         if not await check_group_allow(event.group_id):
             await matcher.finish(plugin_config.not_allow, at_sender=True)
 
@@ -309,6 +312,7 @@ class Impart:
     @staticmethod
     async def jjrank(bot: Bot, matcher: Matcher, event: GroupMessageEvent) -> None:
         """输出前五后五和自己的排名"""
+        await Impart.penalties_and_resets()
         if not await check_group_allow(event.group_id):
             await matcher.finish(plugin_config.not_allow, at_sender=True)
 
@@ -362,6 +366,7 @@ class Impart:
         event: GroupMessageEvent,
     ) -> Tuple[int, str, str, list]:
         """透群员的预处理环节"""
+        await Impart.penalties_and_resets()
         gid, uid = event.group_id, event.user_id
         if not await check_group_allow(event.group_id):
             await matcher.finish(plugin_config.not_allow, at_sender=True)
@@ -566,6 +571,7 @@ class Impart:
         matcher: Matcher, event: GroupMessageEvent, args: Message = CommandArg()
     ) -> None:
         """查询某人的注入量"""
+        await Impart.penalties_and_resets()
         if not await check_group_allow(event.group_id):
             await matcher.finish(plugin_config.not_allow, at_sender=True)
         target = args.extract_plain_text()  # 获取命令参数
