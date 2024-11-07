@@ -21,7 +21,7 @@ _✨ NoneBot2 银趴插件 Plus ✨_
 
 nonebot-plugin-impart 是基于项目 [Special-Week/nonebot_plugin_impact](https://github.com/Special-Week/nonebot_plugin_impact) 的NoneBot2 ~~银趴~~插件, 增添了更多 ~~让群友眼前一亮的实用~~ 功能。
 
-- 2024.11.4 更新: 修复每日惩罚失效问题, 优化状态检测, 避免pk过程中xnn与女孩子状态重复输出
+- 2024.11.7 更新: 修复排行榜结果显示异常
 
 ### 增加功能
 
