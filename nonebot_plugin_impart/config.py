@@ -42,6 +42,7 @@ class Config(BaseModel):
     ban_id_list: str = "123456" # 白名单列表
     isalive: bool = False  # 不活跃惩罚
     nickname: set[str] = [""]
+    superusers: set[str] = [""]
 
     @staticmethod
     async def rule(event: GroupMessageEvent) -> bool:
@@ -102,7 +103,7 @@ class Config(BaseModel):
         )
         return (
             cd > self.fuck_cd_time
-            or event.get_user_id() in nonebot.get_driver().config.superusers
+            or event.get_user_id() in superusers
         )
 
     @staticmethod
